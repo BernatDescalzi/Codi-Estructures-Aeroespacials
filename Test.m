@@ -1,10 +1,11 @@
-%uSaved = load('StoredDisplacements');
+uSaved = load('StoredDisplacements.mat');
 
 s = StructuralAnalysisComputer();
 s.compute();
 u = s.displacements;
-
-error = norm(u-uSaved);
+u_norm=norm(u);
+uSaved_norm= norm(uSaved.u);
+error = u_norm-uSaved_norm;
 
 if error < 1e-15
  disp('Test passed')
