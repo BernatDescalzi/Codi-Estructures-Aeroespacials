@@ -1,7 +1,8 @@
-classdef StructuralAnalysisComputer
+classdef StructuralAnalysisComputer < handle
 
     properties (Access = public)
         displacements
+        reactions
     end
 
     properties (Access = private)
@@ -21,15 +22,15 @@ classdef StructuralAnalysisComputer
 
     methods (Access = private)
 
-        function comptueStiffnessMatrix(obj)
-            s = StiffnessMatrixCompute();
-            s.compute();
-            K = s.K;
-        end
+%         function comptueStiffnessMatrix(obj)
+%             s = StiffnessMatrixCompute();
+%             s.compute();
+%             K = s.K;
+%         end
 
         function computeValues(obj)
-            obj.computeInitalValues();
-            obj.computeStiffnessMatrix();
+%             obj.computeInitalValues();
+%             obj.computeStiffnessMatrix();
             %Cables
             D1=1.75e-3;
             E1 = 210e9;
@@ -57,7 +58,6 @@ classdef StructuralAnalysisComputer
             rho_s = 1650;    % kg/m3
             rho_a = 1.225;   % kg/m3
             Cd = 1.75;
-            V = [0,0,0];     % m/s
             dVdt = g;        % m/s2
 
             %Surface
@@ -121,7 +121,7 @@ classdef StructuralAnalysisComputer
             n_dof = n_i*n;                % Total number of degrees of freedom
             n_el = size(Tn,1);            % Total number of elements
             n_nod = size(Tn,2);           % Number of nodes for each element
-            n_el_dof = n_i*n_nod;         % Number of DOFs for each element
+%             n_el_dof = n_i*n_nod;         % Number of DOFs for each element
 
             % % Computation of the DOFs connectivities
             Td = connectDOFs(n_el,n_nod,n_i,Tn);
@@ -187,12 +187,15 @@ classdef StructuralAnalysisComputer
 
                 % Store maximum and minimum stress and safety coefficients
                 [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = computeSafetyParameters(x,Tn,Tmat,mat,sig,n_el);
-                obj.displacements = u;
+
             end
+                obj.displacements = u;
+                obj.reactions = R;
+            
 
             %% POSTPROCESS
 
-            postprocess(x',Tn',u,sig,sig_max,sig_min,scoef_c,scoef_b,time);
+            %postprocess(x',Tn',u,sig,sig_max,sig_min,scoef_c,scoef_b,time);
 
 
 
