@@ -1,11 +1,11 @@
 classdef element < handle
 
     properties (Access = public)
-        D = 0;
-        d = 0;
-        E = 0;
-        rho = 0;
-        Sig_y = 0;
+        D 
+        d 
+        E 
+        rho 
+        Sig_y
         A
         I
     end
