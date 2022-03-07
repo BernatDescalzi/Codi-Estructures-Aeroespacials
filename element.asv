@@ -17,20 +17,11 @@ classdef element < handle
                 case "Bar"
                     obj = Bar(cParams);
                 case "Cable"
-                    obj = Cable(cParams);
+                    obj = Cable();
             end
         end
 
     end
 
-    methods (Access = protected)
-
-        function init(obj,cParams)
-            obj.D    =  cParams.D;
-            obj.E     = cParams.E;
-            obj.rho   = cParams.rho;
-            obj.Sig_y = cParams.sigY;
-        end        
-
-    end
+    methods (Access = pub)
 end

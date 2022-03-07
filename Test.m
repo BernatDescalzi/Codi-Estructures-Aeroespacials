@@ -15,3 +15,7 @@ end
 
 
 
+% atomic functions
+% delete comments
+% classes max 100 lines
+% maximize cohesion 

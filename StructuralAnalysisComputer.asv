@@ -16,38 +16,38 @@ classdef StructuralAnalysisComputer < handle
         end
 
         function compute(obj)
-            obj.computeValues();
+           obj.computeValues();
         end
     end
 
     methods (Access = private)
 
-        %         function comptueStiffnessMatrix(obj)
-        %             s = StiffnessMatrixCompute();
-        %             s.compute();
-        %             K = s.K;
-        %         end
+%         function comptueStiffnessMatrix(obj)
+%             s = StiffnessMatrixCompute();
+%             s.compute();
+%             K = s.K;
+%         end
 
-
+            
 
         function computeValues(obj)
-            %             obj.computeInitalValues();
-            %             obj.computeStiffnessMatrix();
-
+%             obj.computeInitalValues();
+%             obj.computeStiffnessMatrix();
             s.type  = 'Cable';
             s.D     = 1.75e-3;
             s.E     = 210e9;
             s.rho   = 1550;
-            s.sigY = 180e6;
+            s.Sig_y = 180e6;
 
             Cable = element.create(s);
 
+            Cable = Cable.computeData("Cable");
 
             Bar = element();
-            Bar.D  =8.1e-3;
-            Bar.E  = 70e9;
+            Bar.D=8.1e-3; 
+            Bar.E = 70e9; 
             Bar.rho = 2700;
-            Bar.sigY = 270e6;
+            Bar.Sig_y = 270e6;
             Bar = Bar.computeData("Bar");
 
 
@@ -100,7 +100,7 @@ classdef StructuralAnalysisComputer < handle
 
             mat = [% Young M.   Section A.   Density    A. Moment    Yield S.
                 Cable.E,           Cable.A,      Cable.rho,        Cable.I        Cable.Sig_y;  % Material (1)
-      		   Bar.E,           Bar.A,      Bar.rho,        Bar.I,        Bar.Sig_y   % Material (2)
+     		   Bar.E,           Bar.A,      Bar.rho,        Bar.I,        Bar.Sig_y   % Material (2)
                ];
 
 
@@ -119,10 +119,10 @@ classdef StructuralAnalysisComputer < handle
             %Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
             %
             % % Computation of element stiffness matrices
-            % Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
-            Kel = obj.computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
-
-
+            Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
+            %Kel = obj.computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
+            
+            
             % % Global matrix assembly
             KG = assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel);
 
@@ -183,9 +183,9 @@ classdef StructuralAnalysisComputer < handle
                 [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = computeSafetyParameters(x,Tn,Tmat,mat,sig,n_el);
 
             end
-            obj.displacements = u;
-            obj.reactions = R;
-
+                obj.displacements = u;
+                obj.reactions = R;
+            
 
             %% POSTPROCESS
 
@@ -194,9 +194,6 @@ classdef StructuralAnalysisComputer < handle
 
 
         end
-    end
-
-    methods (Access = private, Static)
 
         function Td = connectDOFs(n_el,n_nod,n_i,Tn)
             Td = zeros(n_el,n_nod*n_i);
@@ -206,7 +203,7 @@ classdef StructuralAnalysisComputer < handle
                         I=nod2dof(i,j,n_i);
                         Td(e,I)=nod2dof(Tn(e,i),j,n_i);
                     end
-                end
+                end 
             end
 
         end
@@ -235,6 +232,6 @@ classdef StructuralAnalysisComputer < handle
                     end
                 end
             end
-        end
+            end
     end
 end
