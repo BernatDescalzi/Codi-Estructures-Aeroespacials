@@ -50,7 +50,6 @@ classdef StructuralAnalysisComputer < handle
             Bar.sigY = 270e6;
             Bar = Bar.computeData("Bar");
 
-
             % Problem data
             g = [0,0,-9.81]; % m/s2
             M = 125;         % kg
@@ -66,8 +65,8 @@ classdef StructuralAnalysisComputer < handle
 
 
             % time discretization
-            dt = 0.01; % Modify the value
-            t_end = 5 ; % Modify the value
+            dt = 0.01; 
+            t_end = 5 ;
             time = 0:dt:t_end;
 
             sig_max = zeros(1,length(time));
