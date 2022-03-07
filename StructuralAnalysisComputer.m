@@ -31,23 +31,19 @@ classdef StructuralAnalysisComputer < handle
         function computeValues(obj)
 %             obj.computeInitalValues();
 %             obj.computeStiffnessMatrix();
-            %Cables
-            D1=1.75e-3;
-            E1 = 210e9;
-            A1 = pi*(D1/2)^2;%Compute the correct value
-            rho1 = 1550;
-            Sig_y1 = 180e6; %268e6 to obtain a safety factor of 2
-            I1 = pi/4*(D1/2)^4; %Compute the correct value
+            Cable = element();
+            Cable.D = 1.75e-3;
+            Cable.E = 210e9;
+            Cable.rho = 1550;
+            Cable.Sig_y = 180e6;
+            Cable = Cable.computeData("Cable");
 
-            %Bars
-            D2=8.1e-3; %15 No risk of buckling
-            d2=D2-2*1.6e-3;
-            E2 = 70e9; %600e9 No risk of buckling
-            A2 = pi*((D2/2)^2-(d2/2)^2);%Compute the correct value
-            rho2 = 2700;
-            Sig_y2 = 270e6;
-            I2 = pi/4*((D2/2)^4-(d2/2)^4); %Compute the correct value
-
+            Bar = element();
+            Bar.D=8.1e-3; 
+            Bar.E = 70e9; 
+            Bar.rho = 2700;
+            Bar.Sig_y = 270e6;
+            Bar = Bar.computeData("Bar");
 
 
             % Problem data
@@ -97,18 +93,9 @@ classdef StructuralAnalysisComputer < handle
                 5 3 0
                 ];
 
-
-
-            % Material data
-            %  mat(m,1) = Young modulus of material m
-            %  mat(m,2) = Section area of material m
-            %  mat(m,3) = density of material m
-            %  mat(m,4) = second area moment of material m
-            %  mat(m,5) = yield strength of material m
-            %  --more columns can be added for additional material properties--
             mat = [% Young M.   Section A.   Density    A. Moment    Yield S.
-                E1,           A1,      rho1,        I1        Sig_y1;  % Material (1)
-     		   E2,           A2,      rho2,        I2        Sig_y2   % Material (2)
+                Cable.E,           Cable.A,      Cable.rho,        Cable.I        Cable.Sig_y;  % Material (1)
+     		   Bar.E,           Bar.A,      Bar.rho,        Bar.I,        Bar.Sig_y   % Material (2)
                ];
 
 
@@ -121,14 +108,16 @@ classdef StructuralAnalysisComputer < handle
             n_dof = n_i*n;                % Total number of degrees of freedom
             n_el = size(Tn,1);            % Total number of elements
             n_nod = size(Tn,2);           % Number of nodes for each element
-%             n_el_dof = n_i*n_nod;         % Number of DOFs for each element
 
             % % Computation of the DOFs connectivities
             Td = connectDOFs(n_el,n_nod,n_i,Tn);
+            %Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
             %
             % % Computation of element stiffness matrices
             Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
-            %
+            %Kel = obj.computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
+            
+            
             % % Global matrix assembly
             KG = assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel);
 
@@ -200,5 +189,44 @@ classdef StructuralAnalysisComputer < handle
 
 
         end
+
+        function Td = connectDOFs(n_el,n_nod,n_i,Tn)
+            Td = zeros(n_el,n_nod*n_i);
+            for e=1:n_el
+                for i=1:n_nod
+                    for j=1:n_i
+                        I=nod2dof(i,j,n_i);
+                        Td(e,I)=nod2dof(Tn(e,i),j,n_i);
+                    end
+                end 
+            end
+
+        end
+
+        function Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat)
+            Kel = zeros(n_nod*n_i,n_nod*n_i,n_el);
+            for e = 1:n_el
+                x1=x(Tn(e,1),1);
+                y1=x(Tn(e,1),2);
+                z1=x(Tn(e,1),3);
+                x2=x(Tn(e,2),1);
+                y2=x(Tn(e,2),2);
+                z2=x(Tn(e,2),3);
+                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
+                R=1/l*[x2-x1 y2-y1 z2-z1 0 0 0;
+                    0 0 0 x2-x1 y2-y1 z2-z1];
+                A=mat(Tmat(e),2);
+                E=mat(Tmat(e),1);
+                KT=(A*E/l)*[1 -1;
+                    -1 1
+                    ];
+                K=R'*KT*R;
+                for r=1:(n_nod*n_i)
+                    for s=1:(n_nod*n_i)
+                        Kel(r,s,e)=K(r,s);
+                    end
+                end
+            end
+            end
     end
 end
