@@ -6,7 +6,6 @@ classdef StructuralAnalysisComputer < handle
     end
 
     properties (Access = private)
-
     end
 
     methods (Access = public)
@@ -34,21 +33,19 @@ classdef StructuralAnalysisComputer < handle
             %             obj.computeInitalValues();
             %             obj.computeStiffnessMatrix();
 
-            s.type  = 'Cable';
+            s.type  = 'Cable'; % s is a structure
             s.D     = 1.75e-3;
             s.E     = 210e9;
             s.rho   = 1550;
             s.sigY = 180e6;
-
             Cable = element.create(s);
 
-
-            Bar = element();
-            Bar.D  =8.1e-3;
-            Bar.E  = 70e9;
-            Bar.rho = 2700;
-            Bar.sigY = 270e6;
-            Bar = Bar.computeData("Bar");
+            s.type = 'Bar';
+            s.D  =8.1e-3;
+            s.E  = 70e9;
+            s.rho = 2700;
+            s.sigY = 270e6;
+            Bar = element.create(s);
 
             % Problem data
             g = [0,0,-9.81]; % m/s2
@@ -98,7 +95,7 @@ classdef StructuralAnalysisComputer < handle
                 ];
 
             mat = [% Young M.   Section A.   Density    A. Moment    Yield S.
-                Cable.E,           Cable.A,      Cable.rho,        Cable.I        Cable.Sig_y;  % Material (1)
+                Cable.E,           Cable.A,      Cable.rho,        Cable.I,        Cable.Sig_y;  % Material (1)
       		   Bar.E,           Bar.A,      Bar.rho,        Bar.I,        Bar.Sig_y   % Material (2)
                ];
 
@@ -113,29 +110,17 @@ classdef StructuralAnalysisComputer < handle
             n_el = size(Tn,1);            % Total number of elements
             n_nod = size(Tn,2);           % Number of nodes for each element
 
-            % % Computation of the DOFs connectivities
-            Td = connectDOFs(n_el,n_nod,n_i,Tn);
-            %Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
-            %
-            % % Computation of element stiffness matrices
-            % Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
+
+            Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
             Kel = obj.computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
-
-
-            % % Global matrix assembly
-            KG = assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel);
-
-            % Compute nodal mass
-            [m_nod] = computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s);
-
-            % Compute total mass
-            Mtot=computeTotalMass(m_nod,n);
-
-            [ur,vr,vl] = fixDOFS(n_dof,n_i,fixNod);
+            KG = obj.assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel);
+            [m_nod] = obj.computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s);
+            Mtot = obj.computeTotalMass(m_nod,n);
+            [ur,vr,vl] = obj.fixDOFS(n_dof,n_i,fixNod);
 
             V=0;
-            eps=zeros(n_el,length(time));
-            sig=zeros(n_el,length(time));
+%             eps=zeros(n_el,length(time));
+%             sig=zeros(n_el,length(time));
             for t = 1:length(time)
 
                 % Update Velocity
@@ -207,7 +192,6 @@ classdef StructuralAnalysisComputer < handle
                     end
                 end
             end
-
         end
 
         function Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat)
@@ -235,5 +219,86 @@ classdef StructuralAnalysisComputer < handle
                 end
             end
         end
+
+        function KG = assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel)
+               KG = zeros(n_dof,n_dof);
+
+                for e=1:n_el
+                    for i=1:(n_nod*n_i)
+                        I=Td(e,i);
+                        for j=1:(n_nod*n_i)
+                            J=Td(e,j);
+                            KG(I,J)=KG(I,J)+Kel(i,j,e);
+                        end
+                    end
+                end
+
+        end
+
+        function [m_nod] = computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s)
+            m_nod=zeros(n,1);
+            for e=1:n_el
+                x1=x(Tn(e,1),1);
+                y1=x(Tn(e,1),2);
+                z1=x(Tn(e,1),3);
+                x2=x(Tn(e,2),1);
+                y2=x(Tn(e,2),2);
+                z2=x(Tn(e,2),3);
+                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
+                
+                m_bar=mat(Tmat(e,1),2)*l*mat(Tmat(e,1),3);
+                
+                m_nod(Tn(e,1))=m_nod(Tn(e,1))+m_bar/2;
+                m_nod(Tn(e,2))=m_nod(Tn(e,2))+m_bar/2;
+            end
+            m_nod(1)=m_nod(1)+M;
+            m_nod(6)=m_nod(6)+M_s/16;
+            m_nod(8)=m_nod(8)+M_s/16;
+            m_nod(12)=m_nod(12)+M_s/16;
+            m_nod(14)=m_nod(14)+M_s/16;
+            m_nod(7)=m_nod(7)+2*M_s/16;
+            m_nod(9)=m_nod(9)+2*M_s/16;
+            m_nod(11)=m_nod(11)+2*M_s/16;
+            m_nod(13)=m_nod(13)+2*M_s/16;
+            m_nod(10)=m_nod(10)+4*M_s/16;
+            
+            
+            if nargin == 0
+               load('tmp.mat');
+            end
+        end
+
+        function [Mtot] = computeTotalMass(m_nod,n)
+            Mtot=0;
+            for i=1:n
+                Mtot=Mtot+m_nod(i,1);
+            end
+        end
+
+        function [ur,vr,vl] = fixDOFS(n_dof,n_i,fixNod)
+            [n,m]=size(fixNod);
+            ur=zeros(n,1);
+            vr=zeros(n,1);
+            vl=zeros(n_dof-n,1);
+            for i=1:n
+                I=nod2dof(fixNod(i,1),fixNod(i,2),n_i);
+                ur(i)=fixNod(i,3);
+                vr(i)=I;
+            end
+            
+                p=1;
+                for j=1:n_dof
+                    s=0;
+                    for k=1:n
+                        if vr(k)==j
+                            s=1;
+                        end
+                    end
+                    if s==0
+                        vl(p)=j;
+                        p=p+1;
+                    end
+                end
+            end
     end
 end
