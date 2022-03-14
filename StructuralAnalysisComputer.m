@@ -48,17 +48,18 @@ classdef StructuralAnalysisComputer < handle
             Bar = element.create(s);
 
             % Problem data
-            g = [0,0,-9.81]; % m/s2
-            M = 125;         % kg
-            S = 17.5;        % m2
-            t_s = 2e-3;      % m
-            rho_s = 1650;    % kg/m3
-            rho_a = 1.225;   % kg/m3
-            Cd = 1.75;
-            dVdt = g;        % m/s2
+            s.g = [0,0,-9.81]; % m/s2
+            s.M = 125;         % kg
+            s.S = 17.5;        % m2
+            s.t_s = 2e-3;      % m
+            s.rho_s = 1650;    % kg/m3
+            s.rho_a = 1.225;   % kg/m3
+            s.Cd = 1.75;
+            Data = data(s);
 
-            %Surface
-            M_s=rho_s*t_s*S;
+            dVdt = Data.g;        % m/s2
+
+            M_s = Data.surface();
 
 
             % time discretization
@@ -72,20 +73,9 @@ classdef StructuralAnalysisComputer < handle
             scoef_b = zeros(1,length(time));
 
             %% PREPROCESS
-
-            % Nodal displacement matrix, Connectivities matrix and Material connectivities are loaded from input_data_02.m
-            %     x(a,j) = coordinate of node a in the dimension j
-            %     Tn(e,a) = global nodal number associated to node a of element e
-            %     Tmat(e) = Row in mat corresponding to the material associated to element e
-
             input_data_02;
 
-            % Fix nodes matrix creation
-            %  fixNod(k,1) = node at which some DOF is prescribed
-            %  fixNod(k,2) = DOF prescribed (1,2,3)
-            %  fixNod(k,3) = prescribed displacement in the corresponding DOF (0 for fixed)
-            fixNod = [% Node        DOF  Magnitude
-                % Write the data here...
+            fixNod = [
                 2 1 0
                 2 2 0
                 2 3 0
@@ -94,7 +84,7 @@ classdef StructuralAnalysisComputer < handle
                 5 3 0
                 ];
 
-            mat = [% Young M.   Section A.   Density    A. Moment    Yield S.
+            mat = [
                 Cable.E,           Cable.A,      Cable.rho,        Cable.I,        Cable.Sig_y;  % Material (1)
       		   Bar.E,           Bar.A,      Bar.rho,        Bar.I,        Bar.Sig_y   % Material (2)
                ];
@@ -114,20 +104,19 @@ classdef StructuralAnalysisComputer < handle
             Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
             Kel = obj.computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
             KG = obj.assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel);
-            [m_nod] = obj.computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s);
+            [m_nod] = obj.computeMass(x,Tn,mat,Tmat,Data.M,n,n_el,M_s);
             Mtot = obj.computeTotalMass(m_nod,n);
             [ur,vr,vl] = obj.fixDOFS(n_dof,n_i,fixNod);
 
             V=0;
-%             eps=zeros(n_el,length(time));
-%             sig=zeros(n_el,length(time));
+
             for t = 1:length(time)
 
                 % Update Velocity
                 V = V + dVdt*dt; % Modify the expression
                 %Vx(t)=V(1,3);
                 % Compute drag
-                D = 1/2*rho_a*S*V.^2*Cd; % Modify the expression
+                D = 1/2*Data.rho_a*Data.S*V.^2*Data.Cd; % Modify the expression
 
                 % External force matrix creation
                 %  Fext(k,1) = node at which the force is applied
@@ -135,20 +124,20 @@ classdef StructuralAnalysisComputer < handle
                 %  Fext(k,3) = force magnitude in the corresponding DOF
                 Fext = [%   Node        DOF  Magnitude
                     % Write the data here...
-                    6 3 D/16+m_nod(6)*(g-dVdt)
-                    8 3 D/16+m_nod(8)*(g-dVdt)
-                    14 3 D/16+m_nod(14)*(g-dVdt)
-                    12 3 D/16+m_nod(12)*(g-dVdt)
-                    7 3 2*D/16+m_nod(7)*(g-dVdt)
-                    9 3 2*D/16+m_nod(9)*(g-dVdt)
-                    11 3 2*D/16+m_nod(11)*(g-dVdt)
-                    13 3 2*D/16+m_nod(13)*(g-dVdt)
-                    10 3 4*D/16+m_nod(10)*(g-dVdt)
-                    2 3 +m_nod(2)*(g-dVdt)
-                    3 3 +m_nod(3)*(g-dVdt)
-                    4 3 +m_nod(4)*(g-dVdt)
-                    5 3 +m_nod(5)*(g-dVdt)
-                    1 3 +m_nod(1)*(g-dVdt)
+                    6 3 D/16+m_nod(6)*(Data.g-dVdt)
+                    8 3 D/16+m_nod(8)*(Data.g-dVdt)
+                    14 3 D/16+m_nod(14)*(Data.g-dVdt)
+                    12 3 D/16+m_nod(12)*(Data.g-dVdt)
+                    7 3 2*D/16+m_nod(7)*(Data.g-dVdt)
+                    9 3 2*D/16+m_nod(9)*(Data.g-dVdt)
+                    11 3 2*D/16+m_nod(11)*(Data.g-dVdt)
+                    13 3 2*D/16+m_nod(13)*(Data.g-dVdt)
+                    10 3 4*D/16+m_nod(10)*(Data.g-dVdt)
+                    2 3 +m_nod(2)*(Data.g-dVdt)
+                    3 3 +m_nod(3)*(Data.g-dVdt)
+                    4 3 +m_nod(4)*(Data.g-dVdt)
+                    5 3 +m_nod(5)*(Data.g-dVdt)
+                    1 3 +m_nod(1)*(Data.g-dVdt)
                     ];
 
                 % Global force vector assembly
@@ -161,7 +150,7 @@ classdef StructuralAnalysisComputer < handle
                 [eps,sig]=computeStrainStressBar(n_nod,n_i,n_el,u,Td,x,Tn,mat,Tmat);
 
                 % Update acceleration
-                dVdt = g+(D/Mtot); % Modify the expression
+                dVdt = Data.g+(D/Mtot); % Modify the expression
 
                 % Store maximum and minimum stress and safety coefficients
                 [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = computeSafetyParameters(x,Tn,Tmat,mat,sig,n_el);
