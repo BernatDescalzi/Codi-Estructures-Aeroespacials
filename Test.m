@@ -19,3 +19,4 @@ end
 % delete comments
 % classes max 100 lines
 % maximize cohesion 
+% delete standalone functions

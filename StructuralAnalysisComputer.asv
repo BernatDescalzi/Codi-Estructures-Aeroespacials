@@ -6,7 +6,8 @@ classdef StructuralAnalysisComputer < handle
     end
 
     properties (Access = private)
-
+        cable        
+        bar
     end
 
     methods (Access = public)
@@ -16,58 +17,71 @@ classdef StructuralAnalysisComputer < handle
         end
 
         function compute(obj)
-           obj.computeValues();
+            obj.computeValues();
         end
     end
 
     methods (Access = private)
 
-%         function comptueStiffnessMatrix(obj)
-%             s = StiffnessMatrixCompute();
-%             s.compute();
-%             K = s.K;
-%         end
-
-            
-
-        function computeValues(obj)
-%             obj.computeInitalValues();
-%             obj.computeStiffnessMatrix();
-            s.type  = 'Cable';
+        %         function comptueStiffnessMatrix(obj)
+        %             s = StiffnessMatrixCompute();
+        %             s.compute();
+        %             K = s.K;
+        %         end
+        function createCable(obj)
+            s.type  = 'Cable'; % s is a structure
             s.D     = 1.75e-3;
             s.E     = 210e9;
             s.rho   = 1550;
-            s.Sig_y = 180e6;
+            s.sigY = 180e6;
+            c = element.create(s);
+            obj.cable = c;
+        end
 
-            Cable = element.create(s);
+        function createBar(obj)
+            s.type = 'Bar';
+            s.D  =8.1e-3;
+            s.E  = 70e9;
+            s.rho = 2700;
+            s.sigY = 270e6;
+            e = element.create(s);
+            obj.bar = e;
+        end      
 
-            Cable = Cable.computeData("Cable");
+        function mat = createMaterial(obj)
+            c = obj.cable;
+            b = obj.bar;
+            mat = [c.E,           c.A,      c.rho,        c.I,        c.Sig_y;
+                  b.E,           b.A,      b.rho,        b.I,        b.Sig_y     ];
+        end
 
-            Bar = element();
-            Bar.D=8.1e-3; 
-            Bar.E = 70e9; 
-            Bar.rho = 2700;
-            Bar.Sig_y = 270e6;
-            Bar = Bar.computeData("Bar");
+        function computeValues(obj)
+            %             obj.computeInitalValues();
+            %             obj.computeStiffnessMatrix();
+            obj.createBar();
+            obj.createCable();
+            obj.
+
 
 
             % Problem data
-            g = [0,0,-9.81]; % m/s2
-            M = 125;         % kg
-            S = 17.5;        % m2
-            t_s = 2e-3;      % m
-            rho_s = 1650;    % kg/m3
-            rho_a = 1.225;   % kg/m3
-            Cd = 1.75;
-            dVdt = g;        % m/s2
+            s.g = [0,0,-9.81]; % m/s2
+            s.M = 125;         % kg
+            s.S = 17.5;        % m2
+            s.t_s = 2e-3;      % m
+            s.rho_s = 1650;    % kg/m3
+            s.rho_a = 1.225;   % kg/m3
+            s.Cd = 1.75;
+            Data = data(s);
 
-            %Surface
-            M_s=rho_s*t_s*S;
+            dVdt = Data.g;        % m/s2
+
+            M_s = Data.surface();
 
 
             % time discretization
-            dt = 0.01; % Modify the value
-            t_end = 5 ; % Modify the value
+            dt = 0.01; 
+            t_end = 5 ;
             time = 0:dt:t_end;
 
             sig_max = zeros(1,length(time));
@@ -76,20 +90,9 @@ classdef StructuralAnalysisComputer < handle
             scoef_b = zeros(1,length(time));
 
             %% PREPROCESS
-
-            % Nodal displacement matrix, Connectivities matrix and Material connectivities are loaded from input_data_02.m
-            %     x(a,j) = coordinate of node a in the dimension j
-            %     Tn(e,a) = global nodal number associated to node a of element e
-            %     Tmat(e) = Row in mat corresponding to the material associated to element e
-
             input_data_02;
 
-            % Fix nodes matrix creation
-            %  fixNod(k,1) = node at which some DOF is prescribed
-            %  fixNod(k,2) = DOF prescribed (1,2,3)
-            %  fixNod(k,3) = prescribed displacement in the corresponding DOF (0 for fixed)
-            fixNod = [% Node        DOF  Magnitude
-                % Write the data here...
+            fixNod = [
                 2 1 0
                 2 2 0
                 2 3 0
@@ -98,10 +101,6 @@ classdef StructuralAnalysisComputer < handle
                 5 3 0
                 ];
 
-            mat = [% Young M.   Section A.   Density    A. Moment    Yield S.
-                Cable.E,           Cable.A,      Cable.rho,        Cable.I        Cable.Sig_y;  % Material (1)
-     		   Bar.E,           Bar.A,      Bar.rho,        Bar.I,        Bar.Sig_y   % Material (2)
-               ];
 
 
             %% SOLVER
@@ -114,36 +113,23 @@ classdef StructuralAnalysisComputer < handle
             n_el = size(Tn,1);            % Total number of elements
             n_nod = size(Tn,2);           % Number of nodes for each element
 
-            % % Computation of the DOFs connectivities
-            Td = connectDOFs(n_el,n_nod,n_i,Tn);
-            %Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
-            %
-            % % Computation of element stiffness matrices
-            Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
-            %Kel = obj.computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
-            
-            
-            % % Global matrix assembly
-            KG = assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel);
 
-            % Compute nodal mass
-            [m_nod] = computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s);
-
-            % Compute total mass
-            Mtot=computeTotalMass(m_nod,n);
-
-            [ur,vr,vl] = fixDOFS(n_dof,n_i,fixNod);
+            Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
+            Kel = obj.computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
+            KG = obj.assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel);
+            [m_nod] = obj.computeMass(x,Tn,mat,Tmat,Data.M,n,n_el,M_s);
+            Mtot = obj.computeTotalMass(m_nod,n);
+            [ur,vr,vl] = obj.fixDOFS(n_dof,n_i,fixNod);
 
             V=0;
-            eps=zeros(n_el,length(time));
-            sig=zeros(n_el,length(time));
+
             for t = 1:length(time)
 
                 % Update Velocity
                 V = V + dVdt*dt; % Modify the expression
                 %Vx(t)=V(1,3);
                 % Compute drag
-                D = 1/2*rho_a*S*V.^2*Cd; % Modify the expression
+                D = 1/2*Data.rho_a*Data.S*V.^2*Data.Cd; % Modify the expression
 
                 % External force matrix creation
                 %  Fext(k,1) = node at which the force is applied
@@ -151,20 +137,20 @@ classdef StructuralAnalysisComputer < handle
                 %  Fext(k,3) = force magnitude in the corresponding DOF
                 Fext = [%   Node        DOF  Magnitude
                     % Write the data here...
-                    6 3 D/16+m_nod(6)*(g-dVdt)
-                    8 3 D/16+m_nod(8)*(g-dVdt)
-                    14 3 D/16+m_nod(14)*(g-dVdt)
-                    12 3 D/16+m_nod(12)*(g-dVdt)
-                    7 3 2*D/16+m_nod(7)*(g-dVdt)
-                    9 3 2*D/16+m_nod(9)*(g-dVdt)
-                    11 3 2*D/16+m_nod(11)*(g-dVdt)
-                    13 3 2*D/16+m_nod(13)*(g-dVdt)
-                    10 3 4*D/16+m_nod(10)*(g-dVdt)
-                    2 3 +m_nod(2)*(g-dVdt)
-                    3 3 +m_nod(3)*(g-dVdt)
-                    4 3 +m_nod(4)*(g-dVdt)
-                    5 3 +m_nod(5)*(g-dVdt)
-                    1 3 +m_nod(1)*(g-dVdt)
+                    6 3 D/16+m_nod(6)*(Data.g-dVdt)
+                    8 3 D/16+m_nod(8)*(Data.g-dVdt)
+                    14 3 D/16+m_nod(14)*(Data.g-dVdt)
+                    12 3 D/16+m_nod(12)*(Data.g-dVdt)
+                    7 3 2*D/16+m_nod(7)*(Data.g-dVdt)
+                    9 3 2*D/16+m_nod(9)*(Data.g-dVdt)
+                    11 3 2*D/16+m_nod(11)*(Data.g-dVdt)
+                    13 3 2*D/16+m_nod(13)*(Data.g-dVdt)
+                    10 3 4*D/16+m_nod(10)*(Data.g-dVdt)
+                    2 3 +m_nod(2)*(Data.g-dVdt)
+                    3 3 +m_nod(3)*(Data.g-dVdt)
+                    4 3 +m_nod(4)*(Data.g-dVdt)
+                    5 3 +m_nod(5)*(Data.g-dVdt)
+                    1 3 +m_nod(1)*(Data.g-dVdt)
                     ];
 
                 % Global force vector assembly
@@ -177,15 +163,15 @@ classdef StructuralAnalysisComputer < handle
                 [eps,sig]=computeStrainStressBar(n_nod,n_i,n_el,u,Td,x,Tn,mat,Tmat);
 
                 % Update acceleration
-                dVdt = g+(D/Mtot); % Modify the expression
+                dVdt = Data.g+(D/Mtot); % Modify the expression
 
                 % Store maximum and minimum stress and safety coefficients
                 [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = computeSafetyParameters(x,Tn,Tmat,mat,sig,n_el);
 
             end
-                obj.displacements = u;
-                obj.reactions = R;
-            
+            obj.displacements = u;
+            obj.reactions = R;
+
 
             %% POSTPROCESS
 
@@ -194,6 +180,9 @@ classdef StructuralAnalysisComputer < handle
 
 
         end
+    end
+
+    methods (Access = private, Static)
 
         function Td = connectDOFs(n_el,n_nod,n_i,Tn)
             Td = zeros(n_el,n_nod*n_i);
@@ -203,9 +192,8 @@ classdef StructuralAnalysisComputer < handle
                         I=nod2dof(i,j,n_i);
                         Td(e,I)=nod2dof(Tn(e,i),j,n_i);
                     end
-                end 
+                end
             end
-
         end
 
         function Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat)
@@ -232,6 +220,87 @@ classdef StructuralAnalysisComputer < handle
                     end
                 end
             end
+        end
+
+        function KG = assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel)
+               KG = zeros(n_dof,n_dof);
+
+                for e=1:n_el
+                    for i=1:(n_nod*n_i)
+                        I=Td(e,i);
+                        for j=1:(n_nod*n_i)
+                            J=Td(e,j);
+                            KG(I,J)=KG(I,J)+Kel(i,j,e);
+                        end
+                    end
+                end
+
+        end
+
+        function [m_nod] = computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s)
+            m_nod=zeros(n,1);
+            for e=1:n_el
+                x1=x(Tn(e,1),1);
+                y1=x(Tn(e,1),2);
+                z1=x(Tn(e,1),3);
+                x2=x(Tn(e,2),1);
+                y2=x(Tn(e,2),2);
+                z2=x(Tn(e,2),3);
+                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
+                
+                m_bar=mat(Tmat(e,1),2)*l*mat(Tmat(e,1),3);
+                
+                m_nod(Tn(e,1))=m_nod(Tn(e,1))+m_bar/2;
+                m_nod(Tn(e,2))=m_nod(Tn(e,2))+m_bar/2;
+            end
+            m_nod(1)=m_nod(1)+M;
+            m_nod(6)=m_nod(6)+M_s/16;
+            m_nod(8)=m_nod(8)+M_s/16;
+            m_nod(12)=m_nod(12)+M_s/16;
+            m_nod(14)=m_nod(14)+M_s/16;
+            m_nod(7)=m_nod(7)+2*M_s/16;
+            m_nod(9)=m_nod(9)+2*M_s/16;
+            m_nod(11)=m_nod(11)+2*M_s/16;
+            m_nod(13)=m_nod(13)+2*M_s/16;
+            m_nod(10)=m_nod(10)+4*M_s/16;
+            
+            
+            if nargin == 0
+               load('tmp.mat');
+            end
+        end
+
+        function [Mtot] = computeTotalMass(m_nod,n)
+            Mtot=0;
+            for i=1:n
+                Mtot=Mtot+m_nod(i,1);
+            end
+        end
+
+        function [ur,vr,vl] = fixDOFS(n_dof,n_i,fixNod)
+            [n,m]=size(fixNod);
+            ur=zeros(n,1);
+            vr=zeros(n,1);
+            vl=zeros(n_dof-n,1);
+            for i=1:n
+                I=nod2dof(fixNod(i,1),fixNod(i,2),n_i);
+                ur(i)=fixNod(i,3);
+                vr(i)=I;
+            end
+            
+                p=1;
+                for j=1:n_dof
+                    s=0;
+                    for k=1:n
+                        if vr(k)==j
+                            s=1;
+                        end
+                    end
+                    if s==0
+                        vl(p)=j;
+                        p=p+1;
+                    end
+                end
             end
     end
 end

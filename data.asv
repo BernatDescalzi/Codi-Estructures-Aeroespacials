@@ -1,7 +1,7 @@
 classdef data < handle
 
 
-    properties (Access = public)
+    properties
         g
         M
         S
@@ -18,11 +18,7 @@ classdef data < handle
         function obj = data(cParams)
             obj.init(cParams);
             obj.computeSurface();
-        end
-
-        function computeDrag(obj,V)
-            d = 1/2*obj.rho_a*obj.S*V.^2*obj.Cd; 
-            obj.D = d;            
+            obj.computeDrag();
         end
 
     end
@@ -38,10 +34,16 @@ classdef data < handle
             obj.Cd    = cParams.Cd;
         end
 
-        function computeSurface(obj)
+        function computSurface(obj)
             s = obj.rho_s*obj.t_s*obj.S;
             obj.M_s = s;
         end
+
+        function compute
+            D = 1/2*Data.rho_a*Data.S*V.^2*Data.Cd; % Modify the expression
+
+        end
+
 
     end
 end
