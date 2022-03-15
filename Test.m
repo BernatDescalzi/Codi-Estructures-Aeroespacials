@@ -1,3 +1,4 @@
+clear, clc;
 uSaved = load('StoredDisplacements.mat');
 
 s = StructuralAnalysisComputer();

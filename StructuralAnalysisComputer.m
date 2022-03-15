@@ -47,6 +47,7 @@ classdef StructuralAnalysisComputer < handle
             e = element.create(s);
             obj.bar = e;
         end      
+        
 
         function mat = createMaterial(obj)
             c = obj.cable;
@@ -58,24 +59,21 @@ classdef StructuralAnalysisComputer < handle
         function computeValues(obj)
             %             obj.computeInitalValues();
             %             obj.computeStiffnessMatrix();
+            %input_data_02;
+            inputdata = inputData();
+            x = inputdata.x;
+            Tn = inputdata.Tn;
+            Tmat = inputdata.Tmat;
+
             obj.createBar();
             obj.createCable();
+            Data = obj.introData();
             mat = obj.createMaterial();
+            [n_d,n_i,n,n_dof,n_el,n_nod] = obj.dimensions(x,Tn,Tmat);
 
 
 
-            % Problem data
-            s.g = [0,0,-9.81]; % m/s2
-            s.M = 125;         % kg
-            s.S = 17.5;        % m2
-            s.t_s = 2e-3;      % m
-            s.rho_s = 1650;    % kg/m3
-            s.rho_a = 1.225;   % kg/m3
-            s.Cd = 1.75;
-            Data = data(s);
-
-            dVdt = Data.g;        % m/s2
-
+            dVdt = Data.g;
             M_s = Data.M_s;
 
 
@@ -90,7 +88,7 @@ classdef StructuralAnalysisComputer < handle
             scoef_b = zeros(1,length(time));
 
             %% PREPROCESS
-            input_data_02;
+
 
             fixNod = [
                 2 1 0
@@ -103,20 +101,9 @@ classdef StructuralAnalysisComputer < handle
 
 
 
-            %% SOLVER
-
-            % Dimensions
-            n_d = size(x,2);              % Number of dimensions
-            n_i = n_d;                    % Number of DOFs for each node
-            n = size(x,1);                % Total number of nodes
-            n_dof = n_i*n;                % Total number of degrees of freedom
-            n_el = size(Tn,1);            % Total number of elements
-            n_nod = size(Tn,2);           % Number of nodes for each element
-
 
             Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
-            Kel = obj.computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat);
-            KG = obj.assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel);
+            KG = obj.stiffnessMatrix(n_el,n_nod,n_i,n_dof,x,Tn,mat,Tmat,Td);
             [m_nod] = obj.computeMass(x,Tn,mat,Tmat,Data.M,n,n_el,M_s);
             Mtot = obj.computeTotalMass(m_nod,n);
             [ur,vr,vl] = obj.fixDOFS(n_dof,n_i,fixNod);
@@ -189,6 +176,31 @@ classdef StructuralAnalysisComputer < handle
 
     methods (Access = private, Static)
 
+
+        function d = introData()
+            s.g = [0,0,-9.81]; % m/s2
+            s.M = 125;         % kg
+            s.S = 17.5;        % m2
+            s.t_s = 2e-3;      % m
+            s.rho_s = 1650;    % kg/m3
+            s.rho_a = 1.225;   % kg/m3
+            s.Cd = 1.75;
+            d = data(s);
+        end
+
+        function [n_d,n_i,n,n_dof,n_el,n_nod] = dimensions(x,Tn,Tmat)
+            s.x = x;
+            s.Tn = Tn;
+            s.Tmat = Tmat;
+            d = dimensionsCalculator(s);
+            n_d = d.n_d;             
+            n_i = d.n_i;
+            n = d.n;
+            n_dof = d.n_dof;
+            n_el = d.n_el;
+            n_nod = d.n_nod;
+        end
+
         function Td = connectDOFs(n_el,n_nod,n_i,Tn)
             Td = zeros(n_el,n_nod*n_i);
             for e=1:n_el
@@ -201,46 +213,21 @@ classdef StructuralAnalysisComputer < handle
             end
         end
 
-        function Kel = computeKelBar(n_d,n_el,n_nod,n_i,x,Tn,mat,Tmat)
-            Kel = zeros(n_nod*n_i,n_nod*n_i,n_el);
-            for e = 1:n_el
-                x1=x(Tn(e,1),1);
-                y1=x(Tn(e,1),2);
-                z1=x(Tn(e,1),3);
-                x2=x(Tn(e,2),1);
-                y2=x(Tn(e,2),2);
-                z2=x(Tn(e,2),3);
-                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
-                R=1/l*[x2-x1 y2-y1 z2-z1 0 0 0;
-                    0 0 0 x2-x1 y2-y1 z2-z1];
-                A=mat(Tmat(e),2);
-                E=mat(Tmat(e),1);
-                KT=(A*E/l)*[1 -1;
-                    -1 1
-                    ];
-                K=R'*KT*R;
-                for r=1:(n_nod*n_i)
-                    for s=1:(n_nod*n_i)
-                        Kel(r,s,e)=K(r,s);
-                    end
-                end
-            end
+        function KG = stiffnessMatrix(n_el,n_nod,n_i,n_dof,x,Tn,mat,Tmat,Td)
+            s.n_el = n_el;
+            s.n_nod = n_nod;
+            s.n_i = n_i;
+            s.n_dof = n_dof;
+            s.x = x;
+            s.Tn = Tn;
+            s.mat = mat;
+            s.Tmat = Tmat;
+            s.Td = Td;
+            e = StiffnessMatrixCompute(s);
+            KG = e.KG;
         end
 
-        function KG = assemblyKG(n_el,n_nod,n_i,n_dof,Td,Kel)
-               KG = zeros(n_dof,n_dof);
 
-                for e=1:n_el
-                    for i=1:(n_nod*n_i)
-                        I=Td(e,i);
-                        for j=1:(n_nod*n_i)
-                            J=Td(e,j);
-                            KG(I,J)=KG(I,J)+Kel(i,j,e);
-                        end
-                    end
-                end
-
-        end
 
         function [m_nod] = computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s)
             m_nod=zeros(n,1);
