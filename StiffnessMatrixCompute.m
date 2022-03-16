@@ -42,14 +42,16 @@ classdef StiffnessMatrixCompute < handle
         end
 
         function computeKelBar(obj)
+            Tn_mat = obj.Tn;
+            x_mat = obj.x;
             m = zeros(obj.n_nod*obj.n_i,obj.n_nod*obj.n_i,obj.n_el);
             for e = 1:obj.n_el
-                x1=obj.x(obj.Tn(e,1),1);
-                y1=obj.x(obj.Tn(e,1),2);
-                z1=obj.x(obj.Tn(e,1),3);
-                x2=obj.x(obj.Tn(e,2),1);
-                y2=obj.x(obj.Tn(e,2),2);
-                z2=obj.x(obj.Tn(e,2),3);
+                x1=x_mat(Tn_mat(e,1),1);
+                y1=x_mat(Tn_mat(e,1),2);
+                z1=x_mat(Tn_mat(e,1),3);
+                x2=x_mat(Tn_mat(e,2),1);
+                y2=x_mat(Tn_mat(e,2),2);
+                z2=x_mat(Tn_mat(e,2),3);
                 l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
                 R=1/l*[x2-x1 y2-y1 z2-z1 0 0 0;
                     0 0 0 x2-x1 y2-y1 z2-z1];

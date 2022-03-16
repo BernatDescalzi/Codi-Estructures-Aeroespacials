@@ -112,27 +112,15 @@ classdef StructuralAnalysisComputer < handle
 
             for t = 1:length(time)
 
-                % Update Velocity
-                V = V + dVdt*dt; % Modify the expression
-                %Vx(t)=V(1,3);
-                % Compute drag
+                V = V + dVdt*dt; 
                 Data.computeDrag(V);
-                % External force matrix creation
-                %  Fext(k,1) = node at which the force is applied
-                %  Fext(k,2) = DOF (direction) at which the force is applied (1,2,3)
-                %  Fext(k,3) = force magnitude in the corresponding DOF
                 Fext = obj.computeFext(m_nod,Data,dVdt);
                 % Global force vector assembly
                 f = computeF(n_i,n_dof,Fext);
 
-                % System resolution
-                [u,R] = solveSys(n_i,n_dof,fixNod,KG, f, ur, vr, vl);
+                [u,R,eps,sig] = obj.systemResolution(KG,f,ur,vr,vl,n_nod,n_i,n_el,Td,x,Tn,mat,Tmat);
 
-                % Compute strain and stresses
-                [eps,sig]=computeStrainStressBar(n_nod,n_i,n_el,u,Td,x,Tn,mat,Tmat);
-
-                % Update acceleration
-                dVdt = Data.g+(Data.D/Mtot); % Modify the expression
+                dVdt = Data.g+(Data.D/Mtot); 
 
                 % Store maximum and minimum stress and safety coefficients
                 [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = computeSafetyParameters(x,Tn,Tmat,mat,sig,n_el);
@@ -227,7 +215,26 @@ classdef StructuralAnalysisComputer < handle
             KG = e.KG;
         end
 
-
+        function [u,R,eps,sig] = systemResolution(KG,f,ur,vr,vl,n_nod,n_i,n_el,Td,x,Tn,mat,Tmat)
+            s.KG = KG;
+            s.f = f;
+            s.ur = ur;
+            s.vr = vr;
+            s.vl = vl;
+            s.n_nod = n_nod;
+            s.n_i = n_i;
+            s.n_el = n_el;
+            s.Td = Td;
+            s.x = x;
+            s.Tn = Tn;
+            s.mat = mat;
+            s.Tmat = Tmat;
+            e = sysResolution(s);
+            u = e.disp;
+            R = e.reac;
+            eps = e.eps;
+            sig = e.sig;
+        end
 
         function [m_nod] = computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s)
             m_nod=zeros(n,1);
