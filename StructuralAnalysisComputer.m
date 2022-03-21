@@ -6,59 +6,45 @@ classdef StructuralAnalysisComputer < handle
     end
 
     properties (Access = private)
-        cable        
+        cable
         bar
+        dimensions
+    end
+
+    properties (Access = private)
+        cableSettings
     end
 
     methods (Access = public)
 
-        function obj = StructuralAnalysisComputer()
-
+        function obj = StructuralAnalysisComputer(cParams)
+            obj.init(cParams);
         end
 
         function compute(obj)
             obj.computeValues();
+                 %             obj.computeInitalValues();
+            %             obj.computeStiffnessMatrix();
+            % obj.computeForces();
+            %obj.computeDisp();
         end
     end
 
     methods (Access = private)
+
+        function init(obj,cParams)
+            obj.cableSettings = cParams.cableSettings;
+        end
 
         %         function comptueStiffnessMatrix(obj)
         %             s = StiffnessMatrixCompute();
         %             s.compute();
         %             K = s.K;
         %         end
-        function createCable(obj)
-            s.type  = 'Cable'; % s is a structure
-            s.D     = 1.75e-3;
-            s.E     = 210e9;
-            s.rho   = 1550;
-            s.sigY = 180e6;
-            c = element.create(s);
-            obj.cable = c;
-        end
 
-        function createBar(obj)
-            s.type = 'Bar';
-            s.D  =8.1e-3;
-            s.E  = 70e9;
-            s.rho = 2700;
-            s.sigY = 270e6;
-            e = element.create(s);
-            obj.bar = e;
-        end      
-        
-
-        function mat = createMaterial(obj)
-            c = obj.cable;
-            b = obj.bar;
-            mat = [c.E,           c.A,      c.rho,        c.I,        c.Sig_y;
-                  b.E,           b.A,      b.rho,        b.I,        b.Sig_y     ];
-        end
 
         function computeValues(obj)
-            %             obj.computeInitalValues();
-            %             obj.computeStiffnessMatrix();
+       
             %input_data_02;
             inputdata = inputData();
             x = inputdata.x;
@@ -69,7 +55,7 @@ classdef StructuralAnalysisComputer < handle
             obj.createCable();
             Data = obj.introData();
             mat = obj.createMaterial();
-            [n_d,n_i,n,n_dof,n_el,n_nod] = obj.dimensions(x,Tn,Tmat);
+            obj.computeDimensions(x,Tn,Tmat);
 
 
 
@@ -78,7 +64,7 @@ classdef StructuralAnalysisComputer < handle
 
 
             % time discretization
-            dt = 0.01; 
+            dt = 0.01;
             t_end = 5 ;
             time = 0:dt:t_end;
 
@@ -102,28 +88,28 @@ classdef StructuralAnalysisComputer < handle
 
 
 
-            Td = obj.connectDOFs(n_el,n_nod,n_i,Tn);
-            KG = obj.stiffnessMatrix(n_el,n_nod,n_i,n_dof,x,Tn,mat,Tmat,Td);
-            [m_nod] = obj.computeMass(x,Tn,mat,Tmat,Data.M,n,n_el,M_s);
-            Mtot = obj.computeTotalMass(m_nod,n);
-            [ur,vr,vl] = obj.fixDOFS(n_dof,n_i,fixNod);
+            Td = obj.connectDOFs(Tn);
+            KG = obj.stiffnessMatrix(x,Tn,mat,Tmat,Td);
+            [m_nod] = obj.computeMass(x,Tn,mat,Tmat,Data.M,M_s);
+            Mtot = obj.computeTotalMass(m_nod);
+            [ur,vr,vl] = obj.fixDOFS(fixNod);
 
             V=0;
 
             for t = 1:length(time)
 
-                V = V + dVdt*dt; 
+                V = V + dVdt*dt;
                 Data.computeDrag(V);
                 Fext = obj.computeFext(m_nod,Data,dVdt);
                 % Global force vector assembly
-                f = computeF(n_i,n_dof,Fext);
+                f = obj.computeF(Fext);
 
-                [u,R,eps,sig] = obj.systemResolution(KG,f,ur,vr,vl,n_nod,n_i,n_el,Td,x,Tn,mat,Tmat);
+                [u,R,eps,sig] = obj.systemResolution(KG,f,ur,vr,vl,Td,x,Tn,mat,Tmat);
 
-                dVdt = Data.g+(Data.D/Mtot); 
+                dVdt = Data.g+(Data.D/Mtot);
 
                 % Store maximum and minimum stress and safety coefficients
-                [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = computeSafetyParameters(x,Tn,Tmat,mat,sig,n_el);
+                [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = obj.computeSafetyParameters(x,Tn,Tmat,mat,sig);
 
             end
             obj.displacements = u;
@@ -136,6 +122,31 @@ classdef StructuralAnalysisComputer < handle
 
 
 
+        end
+
+        function createCable(obj)
+            s = obj.cableSettings;
+            s.type  = 'Cable'; % s is a structure
+            c = element.create(s);
+            obj.cable = c;
+        end
+
+        function createBar(obj)
+            s.type = 'Bar';
+            s.D  =8.1e-3;
+            s.E  = 70e9;
+            s.rho = 2700;
+            s.sigY = 270e6;
+            e = element.create(s);
+            obj.bar = e;
+        end
+
+
+        function mat = createMaterial(obj)
+            c = obj.cable;
+            b = obj.bar;
+            mat = [c.E,           c.A,      c.rho,        c.I,        c.Sig_y;
+                b.E,           b.A,      b.rho,        b.I,        b.Sig_y     ];
         end
 
         function Fext = computeFext(obj,m_nod,Data,dVdt)
@@ -160,36 +171,26 @@ classdef StructuralAnalysisComputer < handle
                 ];
         end
 
-    end
-
-    methods (Access = private, Static)
-
-
-        function d = introData()
-            s.g = [0,0,-9.81]; % m/s2
-            s.M = 125;         % kg
-            s.S = 17.5;        % m2
-            s.t_s = 2e-3;      % m
-            s.rho_s = 1650;    % kg/m3
-            s.rho_a = 1.225;   % kg/m3
-            s.Cd = 1.75;
-            d = data(s);
-        end
-
-        function [n_d,n_i,n,n_dof,n_el,n_nod] = dimensions(x,Tn,Tmat)
+        function  computeDimensions(obj,x,Tn,Tmat)
             s.x = x;
             s.Tn = Tn;
             s.Tmat = Tmat;
             d = dimensionsCalculator(s);
-            n_d = d.n_d;             
-            n_i = d.n_i;
-            n = d.n;
-            n_dof = d.n_dof;
-            n_el = d.n_el;
-            n_nod = d.n_nod;
+            obj.dimensions = d;
+            %             n_d = d.n_d;
+            %             n_i = d.n_i;
+            %             n = d.n;
+            %             n_dof = d.n_dof;
+            %             n_el = d.n_el;
+            %             n_nod = d.n_nod;
         end
 
-        function Td = connectDOFs(n_el,n_nod,n_i,Tn)
+
+        function Td = connectDOFs(obj,Tn)
+            d = obj.dimensions;
+            n_el = d.n_el;
+            n_nod = d.n_nod;
+            n_i = d.n_i;
             Td = zeros(n_el,n_nod*n_i);
             for e=1:n_el
                 for i=1:n_nod
@@ -201,21 +202,126 @@ classdef StructuralAnalysisComputer < handle
             end
         end
 
-        function KG = stiffnessMatrix(n_el,n_nod,n_i,n_dof,x,Tn,mat,Tmat,Td)
-            s.n_el = n_el;
-            s.n_nod = n_nod;
-            s.n_i = n_i;
-            s.n_dof = n_dof;
+
+        function KG = stiffnessMatrix(obj,x,Tn,mat,Tmat,Td)
+            d = obj.dimensions;
+            s.n_el = d.n_el;
+            s.n_nod = d.n_nod;
+            s.n_i = d.n_i;
+            s.n_dof = d.n_dof;
             s.x = x;
             s.Tn = Tn;
             s.mat = mat;
             s.Tmat = Tmat;
             s.Td = Td;
-            e = StiffnessMatrixCompute(s);
+            e = StiffnessMatrixComputer(s);
             KG = e.KG;
         end
 
-        function [u,R,eps,sig] = systemResolution(KG,f,ur,vr,vl,n_nod,n_i,n_el,Td,x,Tn,mat,Tmat)
+        function [m_nod] = computeMass(obj,x,Tn,mat,Tmat,M,M_s)
+            d = obj.dimensions;
+            n = d.n;
+            n_el = d.n_el;
+            m_nod=zeros(n,1);
+            for e=1:n_el
+                x1=x(Tn(e,1),1);
+                y1=x(Tn(e,1),2);
+                z1=x(Tn(e,1),3);
+                x2=x(Tn(e,2),1);
+                y2=x(Tn(e,2),2);
+                z2=x(Tn(e,2),3);
+                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
+
+                m_bar=mat(Tmat(e,1),2)*l*mat(Tmat(e,1),3);
+
+                m_nod(Tn(e,1))=m_nod(Tn(e,1))+m_bar/2;
+                m_nod(Tn(e,2))=m_nod(Tn(e,2))+m_bar/2;
+            end
+            m_nod(1)=m_nod(1)+M;
+            m_nod(6)=m_nod(6)+M_s/16;
+            m_nod(8)=m_nod(8)+M_s/16;
+            m_nod(12)=m_nod(12)+M_s/16;
+            m_nod(14)=m_nod(14)+M_s/16;
+            m_nod(7)=m_nod(7)+2*M_s/16;
+            m_nod(9)=m_nod(9)+2*M_s/16;
+            m_nod(11)=m_nod(11)+2*M_s/16;
+            m_nod(13)=m_nod(13)+2*M_s/16;
+            m_nod(10)=m_nod(10)+4*M_s/16;
+
+
+            if nargin == 0
+                load('tmp.mat');
+            end
+        end
+
+
+        function [Mtot] = computeTotalMass(obj,m_nod)
+            n = obj.dimensions.n;
+            Mtot=0;
+            for i=1:n
+                Mtot=Mtot+m_nod(i,1);
+            end
+        end
+
+        function [ur,vr,vl] = fixDOFS(obj,fixNod)
+            n_dof = obj.dimensions.n_dof;
+            n_i = obj.dimensions.n_i;
+            [n,m]=size(fixNod);
+            ur=zeros(n,1);
+            vr=zeros(n,1);
+            vl=zeros(n_dof-n,1);
+            for i=1:n
+                I=nod2dof(fixNod(i,1),fixNod(i,2),n_i);
+                ur(i)=fixNod(i,3);
+                vr(i)=I;
+            end
+
+            p=1;
+            for j=1:n_dof
+                s=0;
+                for k=1:n
+                    if vr(k)==j
+                        s=1;
+                    end
+                end
+                if s==0
+                    vl(p)=j;
+                    p=p+1;
+                end
+            end
+        end
+
+        function f = computeF(obj,Fext)
+            %--------------------------------------------------------------------------
+            % The function takes as inputs:
+            %   - Dimensions:  n_i         Number of DOFs per node
+            %                  n_dof       Total number of DOFs
+            %   - Fext  External nodal forces [Nforces x 3]
+            %            Fext(k,1) - Node at which the force is applied
+            %            Fext(k,2) - DOF (direction) at which the force acts
+            %            Fext(k,3) - Force magnitude in the corresponding DOF
+            %--------------------------------------------------------------------------
+            % It must provide as output:
+            %   - f     Global force vector [n_dof x 1]
+            %            f(I) - Total external force acting on DOF I
+            %--------------------------------------------------------------------------
+            % Hint: Use the relation between the DOFs numbering and nodal numbering to
+            % determine at which DOF in the global system each force is applied.
+            n_i = obj.dimensions.n_i;
+            n_dof = obj.dimensions.n_dof;
+            f=zeros(n_dof,1);
+            [n,m]=size(Fext);
+            for i=1:n
+                I=nod2dof(Fext(i,1),Fext(i,2),n_i);
+                f(I)=Fext(i,5);
+            end
+
+        end
+
+        function [u,R,eps,sig] = systemResolution(obj,KG,f,ur,vr,vl,Td,x,Tn,mat,Tmat)
+            n_nod = obj.dimensions.n_nod;
+            n_i = obj.dimensions.n_i;
+            n_el = obj.dimensions.n_el;
             s.KG = KG;
             s.f = f;
             s.ur = ur;
@@ -236,8 +342,28 @@ classdef StructuralAnalysisComputer < handle
             sig = e.sig;
         end
 
-        function [m_nod] = computeMass(x,Tn,mat,Tmat,M,n,n_el,M_s)
-            m_nod=zeros(n,1);
+        function [sig_max,sig_min,scoef_ct,scoef_bt] = computeSafetyParameters(obj,x,Tn,Tmat,mat,sigma)
+            n_el = obj.dimensions.n_el;
+            %--------------------------------------------------------------------------
+            % The function takes as inputs:
+            %   x       Nodal coordinates matrix (n x n_d)
+            %   Tn      Connectivities matrix (n_el x n_nod)
+            %   Fext    Matrix with external forces data (Nforces x 3)
+            %   fixNod  Matrix with fixed displacement data (Nfixed x 3)
+            %   Tmat    Material connectivities vector (n_el x 1)
+            %   mat     Material data (Nmat x 5)
+            %--------------------------------------------------------------------------
+            % It must provide as output:
+            %   sig_max    Maximum stress value (1 x 1)
+            %   sig_min    Minimum stress value (1 x 1)
+            %   scoef_c    Safety coefficient to tension (1 x 1)
+            %   scoef_b    Safety coefficient to compression (1 x 1)
+            %--------------------------------------------------------------------------
+            % Hint: Compute the critial stress for buckling to determine the safety
+            % coeficients
+            sig_max=max(sigma);
+            sig_min=min(sigma);
+            sig_cr=zeros(n_el,1);
             for e=1:n_el
                 x1=x(Tn(e,1),1);
                 y1=x(Tn(e,1),2);
@@ -246,60 +372,45 @@ classdef StructuralAnalysisComputer < handle
                 y2=x(Tn(e,2),2);
                 z2=x(Tn(e,2),3);
                 l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
-                
-                m_bar=mat(Tmat(e,1),2)*l*mat(Tmat(e,1),3);
-                
-                m_nod(Tn(e,1))=m_nod(Tn(e,1))+m_bar/2;
-                m_nod(Tn(e,2))=m_nod(Tn(e,2))+m_bar/2;
-            end
-            m_nod(1)=m_nod(1)+M;
-            m_nod(6)=m_nod(6)+M_s/16;
-            m_nod(8)=m_nod(8)+M_s/16;
-            m_nod(12)=m_nod(12)+M_s/16;
-            m_nod(14)=m_nod(14)+M_s/16;
-            m_nod(7)=m_nod(7)+2*M_s/16;
-            m_nod(9)=m_nod(9)+2*M_s/16;
-            m_nod(11)=m_nod(11)+2*M_s/16;
-            m_nod(13)=m_nod(13)+2*M_s/16;
-            m_nod(10)=m_nod(10)+4*M_s/16;
-            
-            
-            if nargin == 0
-               load('tmp.mat');
-            end
-        end
+                sig_cr(e,1)=pi^2*mat(Tmat(e,1),1)*mat(Tmat(e,1),4)/(l^2*mat(Tmat(e,1),2));
+                %scoef_c(e)=mat(Tmat(e,1),5)/sig_max;
+                %scoef_b(e)=sig_cr(e)/sig_min;
+                scoef_c(e)=mat(Tmat(e,1),5)/abs(sigma(e));
 
-        function [Mtot] = computeTotalMass(m_nod,n)
-            Mtot=0;
-            for i=1:n
-                Mtot=Mtot+m_nod(i,1);
-            end
-        end
-
-        function [ur,vr,vl] = fixDOFS(n_dof,n_i,fixNod)
-            [n,m]=size(fixNod);
-            ur=zeros(n,1);
-            vr=zeros(n,1);
-            vl=zeros(n_dof-n,1);
-            for i=1:n
-                I=nod2dof(fixNod(i,1),fixNod(i,2),n_i);
-                ur(i)=fixNod(i,3);
-                vr(i)=I;
-            end
-            
-                p=1;
-                for j=1:n_dof
-                    s=0;
-                    for k=1:n
-                        if vr(k)==j
-                            s=1;
-                        end
-                    end
-                    if s==0
-                        vl(p)=j;
-                        p=p+1;
-                    end
+                if sigma(e)<0
+                    scoef_b(e)=sig_cr(e)/sigma(e);
+                else
+                    scoef_b(e)=-1000;
                 end
+
             end
+            scoef_ct=min(scoef_c);
+            scoef_bt=-max(scoef_b);
+
+
+        end
+
+    end
+
+    methods (Access = private, Static)
+
+
+        function d = introData()
+            s.g = [0,0,-9.81]; % m/s2
+            s.M = 125;         % kg
+            s.S = 17.5;        % m2
+            s.t_s = 2e-3;      % m
+            s.rho_s = 1650;    % kg/m3
+            s.rho_a = 1.225;   % kg/m3
+            s.Cd = 1.75;
+            d = data(s);
+        end
+
+
+
+
+
+
+
     end
 end

@@ -1,4 +1,4 @@
-classdef StiffnessMatrixCompute < handle
+classdef StiffnessMatrixComputer < handle
 
 
     properties (Access = public)
@@ -19,7 +19,7 @@ classdef StiffnessMatrixCompute < handle
     end
 
     methods (Access = public)
-        function obj = StiffnessMatrixCompute(cParams)
+        function obj = StiffnessMatrixComputer(cParams)
             obj.init(cParams)
             obj.computeKelBar()
             obj.assemblyKG()
