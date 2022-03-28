@@ -8,10 +8,25 @@ sC.rho   = 1550;
 sC.sigY = 180e6;
 s.cableSettings = sC;
 
+sB.D  =8.1e-3;
+sB.E  = 70e9;
+sB.rho = 2700;
+sB.sigY = 270e6;
+s.barSettings = sB;
 
-s = StructuralAnalysisComputer(s);
-s.compute();
-u = s.displacements;
+sD.g = [0,0,-9.81]; % m/s2
+sD.M = 125;         % kg
+sD.S = 17.5;        % m2
+sD.t_s = 2e-3;      % m
+sD.rho_s = 1650;    % kg/m3
+sD.rho_a = 1.225;   % kg/m3
+sD.Cd = 1.75;
+s.data = sD;
+
+
+e = StructuralAnalysisComputer(s);
+e.compute();
+u = e.displacements;
 u_norm=norm(u);
 uSaved_norm= norm(uSaved.u);
 error = u_norm-uSaved_norm;

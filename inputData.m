@@ -4,6 +4,7 @@ classdef inputData < handle
         x
         Tn
         Tmat
+        fixNod
     end
     
     properties (Access = private)
@@ -16,6 +17,7 @@ classdef inputData < handle
             obj.nodalCoordinates();
             obj.barConnectivities();
             obj.materialConnectivities();
+            obj.fixedNodes();
         end
         
     end
@@ -137,6 +139,18 @@ classdef inputData < handle
                      2  % 41
             ];
         obj.Tmat = mC;
+        end
+
+        function fixedNodes(obj)
+                fN = [
+                2 1 0
+                2 2 0
+                2 3 0
+                3 3 0
+                3 2 0
+                5 3 0
+                ];
+            obj.fixNod = fN;
         end
     end
     

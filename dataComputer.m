@@ -1,4 +1,4 @@
-classdef data < handle
+classdef dataComputer < handle
 
 
     properties (Access = public)
@@ -11,13 +11,18 @@ classdef data < handle
         Cd
         D
         M_s
+        x
+        Tn
+        Tmat
+        fixNod
     end
 
     methods (Access = public)
 
-        function obj = data(cParams)
+        function obj = dataComputer(cParams)
             obj.init(cParams);
             obj.computeSurface();
+            obj.computeInputData();
         end
 
         function computeDrag(obj,V)
@@ -41,6 +46,14 @@ classdef data < handle
         function computeSurface(obj)
             s = obj.rho_s*obj.t_s*obj.S;
             obj.M_s = s;
+        end
+
+        function computeInputData(obj)
+            c = inputData();
+            obj.x = c.x;
+            obj.Tn = c.Tn;
+            obj.Tmat = c.Tmat;
+            obj.fixNod = c.fixNod;
         end
 
     end
