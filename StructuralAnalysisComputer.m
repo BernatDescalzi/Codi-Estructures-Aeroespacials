@@ -102,11 +102,11 @@ classdef StructuralAnalysisComputer < handle
             n_nod = d.n_nod;
             n_i = d.n_i;
             Td = zeros(n_el,n_nod*n_i);
-            for e=1:n_el
+            for iElem = 1:n_el
                 for i=1:n_nod
                     for j=1:n_i
                         I=nod2dof(i,j,n_i);
-                        Td(e,I)=nod2dof(D.Tn(e,i),j,n_i);
+                        Td(iElem,I)=nod2dof(D.Tn(iElem,i),j,n_i);
                     end
                 end
             end
