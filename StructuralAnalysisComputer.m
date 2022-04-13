@@ -55,20 +55,16 @@ classdef StructuralAnalysisComputer < handle
             mat = obj.createMaterial();
             obj.computeDimensions();
 
-
-
             Td = obj.connectDOFs();
-            KG = obj.stiffnessMatrix(mat,Td);
-            [m_nod] = obj.computeMass(mat);
-            Mtot = obj.computeTotalMass(m_nod);
+            KG = obj.computeStiffnessMatrix(mat,Td);
+            [m_nod,Mtot] = obj.computeMass(mat);
             [ur,vr,vl] = obj.fixDOFS();
-
             obj.computeDisplacements(m_nod,KG,ur,vr,vl,Td,mat,Mtot);
         end
 
         function createCable(obj)
             s = obj.cableSettings;
-            s.type  = 'Cable'; % s is a structure
+            s.type  = 'Cable'; 
             c = element.create(s);
             obj.cable = c;
         end
@@ -88,27 +84,6 @@ classdef StructuralAnalysisComputer < handle
                 b.E,           b.A,      b.rho,        b.I,        b.Sig_y     ];
         end
 
-        function Fext = computeFext(obj,m_nod,dVdt)
-            D = obj.data.D;
-            g = obj.data.g;
-            Fext = [%   Node        DOF  Magnitude
-                % Write the data here...
-                6 3 D/16+m_nod(6)*(g-dVdt)
-                8 3 D/16+m_nod(8)*(g-dVdt)
-                14 3 D/16+m_nod(14)*(g-dVdt)
-                12 3 D/16+m_nod(12)*(g-dVdt)
-                7 3 2*D/16+m_nod(7)*(g-dVdt)
-                9 3 2*D/16+m_nod(9)*(g-dVdt)
-                11 3 2*D/16+m_nod(11)*(g-dVdt)
-                13 3 2*D/16+m_nod(13)*(g-dVdt)
-                10 3 4*D/16+m_nod(10)*(g-dVdt)
-                2 3 +m_nod(2)*(g-dVdt)
-                3 3 +m_nod(3)*(g-dVdt)
-                4 3 +m_nod(4)*(g-dVdt)
-                5 3 +m_nod(5)*(g-dVdt)
-                1 3 +m_nod(1)*(g-dVdt)
-                ];
-        end
 
         function  computeDimensions(obj)
 
@@ -117,12 +92,6 @@ classdef StructuralAnalysisComputer < handle
             s.Tmat = obj.data.Tmat;
             d = dimensionsCalculator(s);
             obj.dimensions = d;
-            %             n_d = d.n_d;
-            %             n_i = d.n_i;
-            %             n = d.n;
-            %             n_dof = d.n_dof;
-            %             n_el = d.n_el;
-            %             n_nod = d.n_nod;
         end
 
 
@@ -144,7 +113,7 @@ classdef StructuralAnalysisComputer < handle
         end
 
 
-        function KG = stiffnessMatrix(obj,mat,Td)
+        function KG = computeStiffnessMatrix(obj,mat,Td)
             d = obj.dimensions;
             D = obj.data;
             s.n_el = d.n_el;
@@ -160,56 +129,22 @@ classdef StructuralAnalysisComputer < handle
             KG = e.KG;
         end
 
-        function [m_nod] = computeMass(obj,mat)
+        function [m_nod,Mtot] = computeMass(obj,mat)
             d = obj.dimensions;
             D = obj.data;
-            x = D.x;
-            Tn = D.Tn;
-            M = D.M;
-            M_s = D.M_s;
-            Tmat = D.Tmat;
-            n = d.n;
-            n_el = d.n_el;
-            m_nod=zeros(n,1);
-            for e=1:n_el
-                x1=x(Tn(e,1),1);
-                y1=x(Tn(e,1),2);
-                z1=x(Tn(e,1),3);
-                x2=x(Tn(e,2),1);
-                y2=x(Tn(e,2),2);
-                z2=x(Tn(e,2),3);
-                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
-
-                m_bar=mat(Tmat(e,1),2)*l*mat(Tmat(e,1),3);
-
-                m_nod(Tn(e,1))=m_nod(Tn(e,1))+m_bar/2;
-                m_nod(Tn(e,2))=m_nod(Tn(e,2))+m_bar/2;
-            end
-            m_nod(1)=m_nod(1)+M;
-            m_nod(6)=m_nod(6)+M_s/16;
-            m_nod(8)=m_nod(8)+M_s/16;
-            m_nod(12)=m_nod(12)+M_s/16;
-            m_nod(14)=m_nod(14)+M_s/16;
-            m_nod(7)=m_nod(7)+2*M_s/16;
-            m_nod(9)=m_nod(9)+2*M_s/16;
-            m_nod(11)=m_nod(11)+2*M_s/16;
-            m_nod(13)=m_nod(13)+2*M_s/16;
-            m_nod(10)=m_nod(10)+4*M_s/16;
-
-
-            if nargin == 0
-                load('tmp.mat');
-            end
+            s.x = D.x;
+            s.Tn = D.Tn;
+            s.M = D.M;
+            s.M_s = D.M_s;
+            s.Tmat = D.Tmat;
+            s.n = d.n;
+            s.n_el = d.n_el;
+            s.mat = mat;
+            e = massComputer(s);
+            m_nod = e.m_nod;
+            Mtot = e.Mtot;
         end
 
-
-        function [Mtot] = computeTotalMass(obj,m_nod)
-            n = obj.dimensions.n;
-            Mtot=0;
-            for i=1:n
-                Mtot=Mtot+m_nod(i,1);
-            end
-        end
 
         function [ur,vr,vl] = fixDOFS(obj)
             fixNod = obj.data.fixNod;
@@ -239,23 +174,30 @@ classdef StructuralAnalysisComputer < handle
                 end
             end
         end
+        
+        function Fext = computeFext(obj,m_nod,dVdt)
+            D = obj.data.D;
+            g = obj.data.g;
+            Fext = [%   Node        DOF  Magnitude
+                % Write the data here...
+                6 3 D/16+m_nod(6)*(g-dVdt)
+                8 3 D/16+m_nod(8)*(g-dVdt)
+                14 3 D/16+m_nod(14)*(g-dVdt)
+                12 3 D/16+m_nod(12)*(g-dVdt)
+                7 3 2*D/16+m_nod(7)*(g-dVdt)
+                9 3 2*D/16+m_nod(9)*(g-dVdt)
+                11 3 2*D/16+m_nod(11)*(g-dVdt)
+                13 3 2*D/16+m_nod(13)*(g-dVdt)
+                10 3 4*D/16+m_nod(10)*(g-dVdt)
+                2 3 +m_nod(2)*(g-dVdt)
+                3 3 +m_nod(3)*(g-dVdt)
+                4 3 +m_nod(4)*(g-dVdt)
+                5 3 +m_nod(5)*(g-dVdt)
+                1 3 +m_nod(1)*(g-dVdt)
+                ];
+        end
 
         function f = computeF(obj,Fext)
-            %--------------------------------------------------------------------------
-            % The function takes as inputs:
-            %   - Dimensions:  n_i         Number of DOFs per node
-            %                  n_dof       Total number of DOFs
-            %   - Fext  External nodal forces [Nforces x 3]
-            %            Fext(k,1) - Node at which the force is applied
-            %            Fext(k,2) - DOF (direction) at which the force acts
-            %            Fext(k,3) - Force magnitude in the corresponding DOF
-            %--------------------------------------------------------------------------
-            % It must provide as output:
-            %   - f     Global force vector [n_dof x 1]
-            %            f(I) - Total external force acting on DOF I
-            %--------------------------------------------------------------------------
-            % Hint: Use the relation between the DOFs numbering and nodal numbering to
-            % determine at which DOF in the global system each force is applied.
             n_i = obj.dimensions.n_i;
             n_dof = obj.dimensions.n_dof;
             f=zeros(n_dof,1);
