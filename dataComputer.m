@@ -2,19 +2,23 @@ classdef dataComputer < handle
 
 
     properties (Access = public)
-        g
-        M
-        S
-        t_s
-        rho_s
-        rho_a
-        Cd
-        D
-        M_s
         x
+
         Tn
         Tmat
+        M
+        M_s
         fixNod
+        g
+        D
+    end
+
+    properties (Access = private)
+        Cd
+       rho_s
+        rho_a
+        S
+        t_s        
     end
 
     methods (Access = public)
