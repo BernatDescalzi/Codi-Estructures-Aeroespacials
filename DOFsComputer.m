@@ -1,17 +1,17 @@
 classdef DOFsComputer < handle
     
-    properties (Access = public)
+    properties (GetAccess = public, SetAccess = private)
         Td
         ur
         vr
         vl
+        n_el
+        n_nod
+        n_i    
+        n_dof        
     end
     
     properties (Access = private)
-        n_el
-        n_nod
-        n_i
-        n_dof
         fixNod
         Tn
     end
@@ -28,6 +28,8 @@ classdef DOFsComputer < handle
             obj.computeFixedDOFS();
             
         end
+
+ 
         
     end
     
@@ -85,11 +87,13 @@ classdef DOFsComputer < handle
             obj.vl = v_l;
             obj.ur = u_r;
         end
-        
-        function I = nod2dof(i,j,obj)
+
+        function I = nod2dof(obj,i,j)
             ni = obj.n_i;
             I = ni*(i-1)+j;
-        end
+        end               
+        
+
         
     end
     

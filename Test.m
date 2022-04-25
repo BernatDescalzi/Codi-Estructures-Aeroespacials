@@ -45,3 +45,8 @@ end
 % classes max 100 lines
 % maximize cohesion 
 % delete standalone functions
+
+
+%ToDo
+% delete Td, ur,vr,vl form Structural...use DOfcomputer
+% 

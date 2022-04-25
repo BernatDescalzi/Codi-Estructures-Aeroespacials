@@ -1,39 +1,36 @@
 classdef StiffnessMatrixComputer < handle
-
-
+    
     properties (Access = public)
         KG
     end
 
     properties (Access = private)
-        n_el
-        n_nod
-        n_i
-        n_dof
+        Kel
+        coordA
+        coordB
+        length
+    end
+
+    properties (Access = private)
+        dim
         x
         Tn
         mat
         Tmat
-        Kel
         Td
     end
 
     methods (Access = public)
         function obj = StiffnessMatrixComputer(cParams)
             obj.init(cParams)
-            obj.computeKelBar()
+            obj.computeElementalSfittnesMatrix()
             obj.assemblyKG()
         end
-
-
     end
 
     methods (Access = private)
         function init(obj,cParams)
-            obj.n_el = cParams.n_el;
-            obj.n_nod = cParams.n_nod;
-            obj.n_i = cParams.n_i;
-            obj.n_dof = cParams.n_dof;
+            obj.dim = cParams.dim;
             obj.x = cParams.x;
             obj.Tn = cParams.Tn;
             obj.mat = cParams.mat;
@@ -41,44 +38,79 @@ classdef StiffnessMatrixComputer < handle
             obj.Td = cParams.Td;
         end
 
-        function computeKelBar(obj)
-            Tn_mat = obj.Tn;
-            x_mat = obj.x;
-            m = zeros(obj.n_nod*obj.n_i,obj.n_nod*obj.n_i,obj.n_el);
-            for e = 1:obj.n_el
-                x1=x_mat(Tn_mat(e,1),1);
-                y1=x_mat(Tn_mat(e,1),2);
-                z1=x_mat(Tn_mat(e,1),3);
-                x2=x_mat(Tn_mat(e,2),1);
-                y2=x_mat(Tn_mat(e,2),2);
-                z2=x_mat(Tn_mat(e,2),3);
-                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
-                R=1/l*[x2-x1 y2-y1 z2-z1 0 0 0;
-                    0 0 0 x2-x1 y2-y1 z2-z1];
-                A=obj.mat(obj.Tmat(e),2);
-                E=obj.mat(obj.Tmat(e),1);
-                KT=(A*E/l)*[1 -1;
-                    -1 1
-                    ];
-                K=R'*KT*R;
-                for r=1:(obj.n_nod*obj.n_i)
-                    for s=1:(obj.n_nod*obj.n_i)
-                        m(r,s,e)=K(r,s);
-                    end
-                end
+        function computeElementalSfittnesMatrix(obj)
+            ndof  = obj.dim.n_nod*obj.dim.n_i;
+            nElem = obj.dim.n_el;
+            kel = zeros(ndof,ndof,nElem);
+            for iElem = 1:nElem
+                obj.computeNodesCoord(iElem);
+                obj.computeLength();                
+                R = obj.computeRotationMatrix();
+                KT = obj.createElementalStifnessMatrix(iElem);
+                K  = obj.rotateElementalStiffnesMatrix(KT,R);
+                kel(:,:,iElem) = K;
             end
-            obj.Kel = m;
+            obj.Kel = kel;
+        end
+
+        function KT = createElementalStifnessMatrix(obj,iElem,l)
+            l = obj.length;
+                A = obj.mat(obj.Tmat(iElem),2);
+                E = obj.mat(obj.Tmat(iElem),1);
+                KT=(A*E/l)*[1 -1;-1 1];
+        end
+
+        function K = rotateElementalStiffnesMatrix(obj,KT,R)
+           K=R'*KT*R;
+        end
+
+        function computeNodesCoord(obj,iElem)
+            Tn_mat = obj.Tn;
+            coord = obj.x;
+            nodeA = Tn_mat(iElem,1);
+            nodeB = Tn_mat(iElem,2);
+            obj.coordA.x = coord(nodeA,1);
+            obj.coordA.y = coord(nodeA,2);
+            obj.coordA.z = coord(nodeA,3);
+            obj.coordB.x = coord(nodeB,1);
+            obj.coordB.y = coord(nodeB,2);
+            obj.coordB.z = coord(nodeB,3);
+        end
+
+        function R = computeRotationMatrix(obj)
+            xA = obj.coordA.x;
+            xB = obj.coordB.x;
+            yA = obj.coordA.y;
+            yB = obj.coordB.y;
+            zA = obj.coordA.z;
+            zB = obj.coordB.z;
+            l  = obj.length;
+            R=1/l*[xB-xA yB-yA zB-zA 0 0 0;
+                0 0 0 xB-xA yB-yA zB-zA];
+        end
+
+        function l = computeLength(obj)
+            xA = obj.coordA.x;
+            xB = obj.coordB.x;
+            yA = obj.coordA.y;
+            yB = obj.coordB.y;
+            zA = obj.coordA.z;
+            zB = obj.coordB.z;            
+            l = sqrt((xB-xA)^2+(yB-yA)^2+(zB-zA)^2);
+            obj.length = l;
         end
 
         function assemblyKG(obj)
-               kg = zeros(obj.n_dof,obj.n_dof);
-
-                for e=1:obj.n_el
-                    for i=1:(obj.n_nod*obj.n_i)
-                        I=obj.Td(e,i);
-                        for j=1:(obj.n_nod*obj.n_i)
-                            J=obj.Td(e,j);
-                            kg(I,J)=kg(I,J)+obj.Kel(i,j,e);
+               ndof  = obj.dim.n_nod*obj.dim.n_i;            
+               kg = zeros(obj.dim.n_dof,obj.dim.n_dof);
+               connec = obj.Td;
+                for iElem = 1:obj.dim.n_el
+                    for idof=1:ndof
+                        inode = connec(iElem,idof);
+                        for jdof=1:ndof
+                            jnode = connec(iElem,jdof);
+                            kelem = obj.Kel(idof,jdof,iElem);
+                            kg(inode,jnode)=kg(inode,jnode)+kelem;
                         end
                     end
                 end

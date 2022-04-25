@@ -129,7 +129,10 @@ classdef StructuralAnalysisComputer < handle
         function KG = computeStiffnessMatrix(obj,mat)
             d = obj.dimensions;
             D = obj.data;
-            s.dim = obj.dimensions;
+            s.n_el = d.n_el;
+            s.n_nod = d.n_nod;
+            s.n_i = d.n_i;
+            s.n_dof = d.n_dof;
             s.x = D.x;
             s.Tn = D.Tn;
             s.mat = mat;
