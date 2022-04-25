@@ -60,10 +60,8 @@ classdef StructuralAnalysisComputer < handle
             obj.computeDimensions();
             mat = obj.createMaterial();
             obj.computeDOFS();
-            %Td = obj.connectDOFs();
             KG = obj.computeStiffnessMatrix(mat);
             [m_nod,Mtot] = obj.computeMass(mat);
-            %[ur,vr,vl] = obj.fixDOFS();
             obj.computeDisplacements(m_nod,KG,mat,Mtot);
         end
 
@@ -120,39 +118,24 @@ classdef StructuralAnalysisComputer < handle
             s.data = obj.data;
             e = DOFsComputer(s);
             obj.dofComputer = e;
-            obj.Td = e.Td;
-            obj.ur = e.ur;
-            obj.vr = e.vr;
-            obj.vl = e.vl;
-        
         end
+
         function KG = computeStiffnessMatrix(obj,mat)
-            d = obj.dimensions;
-            D = obj.data;
             s.dim = obj.dimensions;
-            s.x = D.x;
-            s.Tn = D.Tn;
+            s.data = obj.data;
             s.mat = mat;
-            s.Tmat = D.Tmat;
-            s.Td = obj.Td;
+            s.Td = obj.dofComputer.Td;
             e = StiffnessMatrixComputer(s);
             KG = e.KG;
         end
 
         function [m_nod,Mtot] = computeMass(obj,mat)
-            d = obj.dimensions;
-            D = obj.data;
-            s.x = D.x;
-            s.Tn = D.Tn;
-            s.M = D.M;
-            s.M_s = D.M_s;
-            s.Tmat = D.Tmat;
-            s.n = d.n;
-            s.n_el = d.n_el;
+            s.dimensions = obj.dimensions;
+            s.data = obj.data;
             s.mat = mat;
             e = massComputer(s);
             m_nod = e.m_nod;
-            Mtot = e.Mtot;
+            Mtot = e.totalMass;
         end
 
        
@@ -190,24 +173,16 @@ classdef StructuralAnalysisComputer < handle
 
         end
 
-        function [u,R,eps,sig] = systemResolution(obj,KG,f,ur,vr,vl,Td,mat)
-            d = obj.data;
-            n_nod = obj.dimensions.n_nod;
-            n_i = obj.dimensions.n_i;
-            n_el = obj.dimensions.n_el;
+        function [u,R,eps,sig] = systemResolution(obj,KG,f,mat)
+            s.data = obj.data;
+            s.dimensions = obj.dimensions;
             s.KG = KG;
             s.f = f;
-            s.ur = ur;
-            s.vr = vr;
-            s.vl = vl;
-            s.n_nod = n_nod;
-            s.n_i = n_i;
-            s.n_el = n_el;
-            s.Td = Td;
-            s.x = d.x;
-            s.Tn = d.Tn;
+            s.ur = obj.dofComputer.ur;
+            s.vr = obj.dofComputer.vr;
+            s.vl = obj.dofComputer.vl;
+            s.Td = obj.dofComputer.Td;
             s.mat = mat;
-            s.Tmat = d.Tmat;
             e = sysResolution(s);
             u = e.disp;
             R = e.reac;
@@ -216,39 +191,15 @@ classdef StructuralAnalysisComputer < handle
         end
 
         function [sig_max,sig_min,scoef_ct,scoef_bt] = computeSafetyParameters(obj,mat,sigma)
-            d = obj.data;
-            x = d.x;
-            Tn = d.Tn;
-            Tmat = d.Tmat;
-            n_el = obj.dimensions.n_el;
-
-            sig_max=max(sigma);
-            sig_min=min(sigma);
-            sig_cr=zeros(n_el,1);
-            for e=1:n_el
-                x1=x(Tn(e,1),1);
-                y1=x(Tn(e,1),2);
-                z1=x(Tn(e,1),3);
-                x2=x(Tn(e,2),1);
-                y2=x(Tn(e,2),2);
-                z2=x(Tn(e,2),3);
-                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
-                sig_cr(e,1)=pi^2*mat(Tmat(e,1),1)*mat(Tmat(e,1),4)/(l^2*mat(Tmat(e,1),2));
-                %scoef_c(e)=mat(Tmat(e,1),5)/sig_max;
-                %scoef_b(e)=sig_cr(e)/sig_min;
-                scoef_c(e)=mat(Tmat(e,1),5)/abs(sigma(e));
-
-                if sigma(e)<0
-                    scoef_b(e)=sig_cr(e)/sigma(e);
-                else
-                    scoef_b(e)=-1000;
-                end
-
-            end
-            scoef_ct=min(scoef_c);
-            scoef_bt=-max(scoef_b);
-
-
+            s.data = obj.data;
+            s.dimensions = obj.dimensions;
+            s.sigma = sigma;
+            s.mat = mat;
+            e = safetyParametersComputer(s);
+            sig_max = e.sig_max;
+            sig_min = e.sig_min;
+            scoef_ct = e.scoef_ct;
+            scoef_bt = e.scoef_bt;
         end
 
        function computeDisplacements(obj,m_nod,KG,mat,Mtot)
@@ -267,7 +218,7 @@ classdef StructuralAnalysisComputer < handle
                 obj.data.computeDrag(V);
                 Fext = obj.computeFext(m_nod,dVdt);
                 f = obj.computeF(Fext);
-                [u,R,eps,sig] = obj.systemResolution(KG,f,obj.ur,obj.vr,obj.vl,obj.Td,mat);
+                [u,R,eps,sig] = obj.systemResolution(KG,f,mat);
                 dVdt = obj.data.g+(obj.data.D/Mtot);
                 [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = obj.computeSafetyParameters(mat,sig);
 

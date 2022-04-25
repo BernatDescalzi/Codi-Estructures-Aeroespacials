@@ -13,10 +13,8 @@ classdef StiffnessMatrixComputer < handle
 
     properties (Access = private)
         dim
-        x
-        Tn
+        data
         mat
-        Tmat
         Td
     end
 
@@ -31,10 +29,8 @@ classdef StiffnessMatrixComputer < handle
     methods (Access = private)
         function init(obj,cParams)
             obj.dim = cParams.dim;
-            obj.x = cParams.x;
-            obj.Tn = cParams.Tn;
+            obj.data = cParams.data;
             obj.mat = cParams.mat;
-            obj.Tmat = cParams.Tmat;
             obj.Td = cParams.Td;
         end
 
@@ -55,8 +51,8 @@ classdef StiffnessMatrixComputer < handle
 
         function KT = createElementalStifnessMatrix(obj,iElem,l)
             l = obj.length;
-                A = obj.mat(obj.Tmat(iElem),2);
-                E = obj.mat(obj.Tmat(iElem),1);
+                A = obj.mat(obj.data.Tmat(iElem),2);
+                E = obj.mat(obj.data.Tmat(iElem),1);
                 KT=(A*E/l)*[1 -1;-1 1];
         end
 
@@ -65,8 +61,8 @@ classdef StiffnessMatrixComputer < handle
         end
 
         function computeNodesCoord(obj,iElem)
-            Tn_mat = obj.Tn;
-            coord = obj.x;
+            Tn_mat = obj.data.Tn;
+            coord = obj.data.x;
             nodeA = Tn_mat(iElem,1);
             nodeB = Tn_mat(iElem,2);
             obj.coordA.x = coord(nodeA,1);

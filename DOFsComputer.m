@@ -4,20 +4,16 @@ classdef DOFsComputer < handle
         Td
         ur
         vr
-        vl
-        n_el
-        n_nod
-        n_i    
-        n_dof        
+        vl       
     end
     
     properties (Access = private)
-        fixNod
-        Tn
+
     end
     
     properties (Access = private)
-        
+        dim
+        data
     end
     
     methods (Access = public)
@@ -27,45 +23,48 @@ classdef DOFsComputer < handle
             obj.computeTd();
             obj.computeFixedDOFS();
             
-        end
-
- 
-        
+        end    
     end
     
     methods (Access = private)
         
         function init(obj,cParams)
-            obj.n_el = cParams.dimensions.n_el;
-            obj.n_nod = cParams.dimensions.n_nod;
-            obj.n_i = cParams.dimensions.n_i;
-            obj.n_dof = cParams.dimensions.n_dof;
-            obj.fixNod = cParams.data.fixNod;
-            obj.Tn = cParams.data.Tn;
+            obj.dim = cParams.dimensions;
+            obj.data = cParams.data;
         end
         
         function computeTd(obj)
-            T_d = zeros(obj.n_el,obj.n_nod*obj.n_i);
-            for iElem = 1:obj.n_el
-                for i=1:obj.n_nod
-                    for j=1:obj.n_i
-                        I=obj.nod2dof(i,j);
-                        T_d(iElem,I)=obj.nod2dof(obj.Tn(iElem,i),j);
+            nElem = obj.dim.n_el;
+            nNod = obj.dim.n_nod;
+            nDof = obj.dim.n_i;
+            elemDofs = nNod*nDof;
+            T_d = zeros(nElem,elemDofs);
+            for iElem = 1:nElem
+                for iNod=1:nNod
+                    for iDof=1:nDof
+                        I=obj.nod2dof(iNod,iDof);
+                        T_d(iElem,I)=obj.nod2dof(obj.data.Tn(iElem,iNod),iDof);
                     end
                 end
             end  
             obj.Td = T_d;
         end
         
+
         function computeFixedDOFS(obj)
-            numDofs = obj.n_dof;
-            fixedNod = obj.fixNod;
-            [n,m]=size(fixedNod);
-            u_r=zeros(n,1);
-            v_r=zeros(n,1);
-            v_l=zeros(numDofs-n,1);
-            for i=1:n
-                I=obj.nod2dof(fixedNod(i,1),fixedNod(i,2));
+            numDofs = obj.dim.n_dof;
+            fixedNod = obj.data.fixNod;
+            nFixedNod=size(fixedNod,1);
+
+            u_r=zeros(nFixedNod,1);
+            v_r=zeros(nFixedNod,1);
+            v_l=zeros(numDofs-nFixedNod,1);
+
+            for i=1:nFixedNod
+                numFixedNod = fixedNod(i,1);
+                dofRestricted = fixedNod(i,2);
+
+                I=obj.nod2dof(numFixedNod,dofRestricted);
                 u_r(i)=fixedNod(i,3);
                 v_r(i)=I;
             end
@@ -73,7 +72,7 @@ classdef DOFsComputer < handle
             p=1;
             for j=1:numDofs
                 s=0;
-                for k=1:n
+                for k=1:nFixedNod
                     if v_r(k)==j
                         s=1;
                     end
@@ -89,7 +88,7 @@ classdef DOFsComputer < handle
         end
 
         function I = nod2dof(obj,i,j)
-            ni = obj.n_i;
+            ni = obj.dim.n_i;
             I = ni*(i-1)+j;
         end               
         

@@ -2,17 +2,15 @@ classdef massComputer < handle
     
     properties (Access = public)
         m_nod
-        Mtot
+        totalMass
     end
     
     properties (Access = private)
-        x
-        Tn
-        M
-        M_s
-        Tmat
-        n
-        n_el
+    end
+
+    properties (Access = private)
+        dim
+        data
         mat
     end
 
@@ -31,33 +29,26 @@ classdef massComputer < handle
     methods (Access = private)
         
         function init(obj,cParams)
-            obj.x = cParams.x;
-            obj.Tn = cParams.Tn;
-            obj.M = cParams.M;
-            obj.M_s = cParams.M_s;
-            obj.Tmat = cParams.Tmat;
-            obj.n = cParams.n;
-            obj.n_el = cParams.n_el;
+            obj.dim = cParams.dimensions;
+            obj.data = cParams.data;
             obj.mat = cParams.mat;
         end
         
         function computeMass(obj)
-
-            
-            Tn = obj.Tn;
-            M = obj.M;
-            M_s = obj.M_s;
-            n = obj.n;
-            n_el = obj.n_el;
-            mat = obj.mat;
+            Tn = obj.data.Tn;
+            M = obj.data.M;
+            M_s = obj.data.M_s;
+            n = obj.dim.n;
+            n_el = obj.dim.n_el;
+            material = obj.mat;
             mass =zeros(n,1);
             for iElem=1:n_el
 
                 l = obj.computeLength(iElem);
 
                 type = obj.computeElementType(iElem);
-                A   = mat(type,2);
-                rho = mat(type,3);
+                A   = material(type,2);
+                rho = material(type,3);
 
                 m_bar = A*l*rho;
 
@@ -84,14 +75,14 @@ classdef massComputer < handle
         end
 
         function eType = computeElementType(obj,iElem)
-            T = obj.Tmat;
+            T = obj.data.Tmat;
             eType = T(iElem,1);
         end
 
         function l = computeLength(obj,iElem) 
-            nodeA = obj.Tn(iElem,1);
-            nodeB = obj.Tn(iElem,2);
-            xV = obj.x;
+            nodeA = obj.data.Tn(iElem,1);
+            nodeB = obj.data.Tn(iElem,2);
+            xV = obj.data.x;
             xA = xV(nodeA,1);
             yA = xV(nodeA,2);
             zA = xV(nodeA,3);
@@ -102,13 +93,13 @@ classdef massComputer < handle
         end
 
         function computeTotalMass(obj)
-            m_nod = obj.m_nod;
-            n = obj.n;
+            nodeMass = obj.m_nod;
+            n = obj.dim.n;
             Mtot=0;
             for i=1:n
-                Mtot=Mtot+m_nod(i,1);
+                Mtot=Mtot+nodeMass(i,1);
             end
-            obj.Mtot = Mtot;
+            obj.totalMass = Mtot;
         end
     end
     

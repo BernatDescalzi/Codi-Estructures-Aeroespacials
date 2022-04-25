@@ -8,19 +8,15 @@ classdef sysResolution < handle
     end
     
     properties (Access = private)
+        dim
+        data
         KG
         f
         ur
         vr
         vl
-        n_nod
-        n_i
-        n_el
         Td
-        x
-        Tn
         mat
-        Tmat
     end
     
     methods (Access = public)
@@ -28,7 +24,7 @@ classdef sysResolution < handle
         function obj = sysResolution(cParams)
             obj.init(cParams)
             obj.solveSys(obj.KG, obj.f, obj.ur, obj.vr, obj.vl)
-            obj.computeStrainStressBar(obj.n_nod, obj.n_i, obj.n_el, obj.Td, obj.x, obj.Tn, obj.mat, obj.Tmat)
+            obj.computeStrainStressBar(obj.Td, obj.mat)
         end
         
     end
@@ -36,19 +32,16 @@ classdef sysResolution < handle
     methods (Access = private)
         
         function init(obj,cParams)
+            obj.dim = cParams.dimensions;
+            obj.data = cParams.data;
             obj.KG = cParams.KG;
             obj.f = cParams.f;
             obj.ur = cParams.ur;
             obj.vr = cParams.vr;
             obj.vl = cParams.vl;
-            obj.n_nod = cParams.n_nod;
-            obj.n_i = cParams.n_i;
-            obj.n_el = cParams.n_el;
             obj.Td = cParams.Td;
-            obj.x = cParams.x;
-            obj.Tn = cParams.Tn;
             obj.mat = cParams.mat;
-            obj.Tmat = cParams.Tmat;
+
         end
         
         function solveSys(obj,KG,f, ur, vr, vl)
@@ -72,7 +65,13 @@ classdef sysResolution < handle
 
         end
         
-        function computeStrainStressBar(obj,n_nod,n_i,n_el,Td,x,Tn,mat,Tmat)
+        function computeStrainStressBar(obj,Td,mat)
+            n_nod = obj.dim.n_nod;
+            n_i = obj.dim.n_i;
+            n_el = obj.dim.n_el;
+            Tn = obj.data.Tn;
+            Tmat = obj.data.Tmat;
+            x = obj.data.x;
             u = obj.disp;
             sigma = zeros(n_el,1);
             epsilon = zeros(n_el,1);
