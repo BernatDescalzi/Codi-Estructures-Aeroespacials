@@ -10,6 +10,10 @@ classdef StructuralAnalysisComputer < handle
         bar
         dimensions
         data
+        Td
+        ur
+        vr
+        vl
     end
 
     properties (Access = private)
@@ -52,14 +56,14 @@ classdef StructuralAnalysisComputer < handle
             obj.createBar();
             obj.createCable();
             obj.computeData();
-            mat = obj.createMaterial();
             obj.computeDimensions();
-
-            Td = obj.connectDOFs();
-            KG = obj.computeStiffnessMatrix(mat,Td);
+            mat = obj.createMaterial();
+            obj.computeDOFS();
+            %Td = obj.connectDOFs();
+            KG = obj.computeStiffnessMatrix(mat);
             [m_nod,Mtot] = obj.computeMass(mat);
-            [ur,vr,vl] = obj.fixDOFS();
-            obj.computeDisplacements(m_nod,KG,ur,vr,vl,Td,mat,Mtot);
+            %[ur,vr,vl] = obj.fixDOFS();
+            obj.computeDisplacements(m_nod,KG,mat,Mtot);
         end
 
         function createCable(obj)
@@ -76,17 +80,12 @@ classdef StructuralAnalysisComputer < handle
             obj.bar = e;
         end
 
-
-        function mat = createMaterial(obj)
-            c = obj.cable;
-            b = obj.bar;
-            mat = [c.E,           c.A,      c.rho,        c.I,        c.Sig_y;
-                b.E,           b.A,      b.rho,        b.I,        b.Sig_y     ];
+        function computeData(obj)
+            s = obj.initData;
+            obj.data = dataComputer(s);
         end
 
-
         function  computeDimensions(obj)
-
             s.x = obj.data.x;
             s.Tn = obj.data.Tn;
             s.Tmat = obj.data.Tmat;
@@ -94,26 +93,55 @@ classdef StructuralAnalysisComputer < handle
             obj.dimensions = d;
         end
 
-
-        function Td = connectDOFs(obj)
-            d = obj.dimensions;
-            D = obj.data;
-            n_el = d.n_el;
-            n_nod = d.n_nod;
-            n_i = d.n_i;
-            Td = zeros(n_el,n_nod*n_i);
-            for iElem = 1:n_el
-                for i=1:n_nod
-                    for j=1:n_i
-                        I=nod2dof(i,j,n_i);
-                        Td(iElem,I)=nod2dof(D.Tn(iElem,i),j,n_i);
-                    end
+        function m = createMaterial(obj)
+            c = obj.cable;
+            b = obj.bar;
+            m = [c.E,           c.A,      c.rho,        c.I,        c.Sig_y;
+                b.E,           b.A,      b.rho,        b.I,        b.Sig_y     ];
+            Tmat = obj.data.Tmat;
+            n_el = obj.dimensions.n_el;
+            mat=zeros(n_el,5);
+            for i=1:n_el
+                if Tmat(i) == 1
+                    mat(i,:)=m(1,:);
+                elseif Tmat(i) == 2
+                    mat(i,:)=m(2,:);
                 end
             end
         end
 
+        function I = nod2dof(i,j,n_i)
+            I = n_i*(i-1)+j;
+        end
 
-        function KG = computeStiffnessMatrix(obj,mat,Td)
+%         function Td = connectDOFs(obj)
+%             d = obj.dimensions;
+%             D = obj.data;
+%             n_el = d.n_el;
+%             n_nod = d.n_nod;
+%             n_i = d.n_i;
+%             Td = zeros(n_el,n_nod*n_i);
+%             for iElem = 1:n_el
+%                 for i=1:n_nod
+%                     for j=1:n_i
+%                         I=nod2dof(i,j,n_i);
+%                         Td(iElem,I)=nod2dof(D.Tn(iElem,i),j,n_i);
+%                     end
+%                 end
+%             end
+%         end
+
+        function computeDOFS(obj)
+            s.dimensions = obj.dimensions;
+            s.data = obj.data;
+            e = DOFsComputer(s);
+            obj.Td = e.Td;
+            obj.ur = e.ur;
+            obj.vr = e.vr;
+            obj.vl = e.vl;
+        
+        end
+        function KG = computeStiffnessMatrix(obj,mat)
             d = obj.dimensions;
             D = obj.data;
             s.n_el = d.n_el;
@@ -124,7 +152,7 @@ classdef StructuralAnalysisComputer < handle
             s.Tn = D.Tn;
             s.mat = mat;
             s.Tmat = D.Tmat;
-            s.Td = Td;
+            s.Td = obj.Td;
             e = StiffnessMatrixComputer(s);
             KG = e.KG;
         end
@@ -146,34 +174,34 @@ classdef StructuralAnalysisComputer < handle
         end
 
 
-        function [ur,vr,vl] = fixDOFS(obj)
-            fixNod = obj.data.fixNod;
-            n_dof = obj.dimensions.n_dof;
-            n_i = obj.dimensions.n_i;
-            [n,m]=size(fixNod);
-            ur=zeros(n,1);
-            vr=zeros(n,1);
-            vl=zeros(n_dof-n,1);
-            for i=1:n
-                I=nod2dof(fixNod(i,1),fixNod(i,2),n_i);
-                ur(i)=fixNod(i,3);
-                vr(i)=I;
-            end
-
-            p=1;
-            for j=1:n_dof
-                s=0;
-                for k=1:n
-                    if vr(k)==j
-                        s=1;
-                    end
-                end
-                if s==0
-                    vl(p)=j;
-                    p=p+1;
-                end
-            end
-        end
+%         function [ur,vr,vl] = fixDOFS(obj)
+%             fixNod = obj.data.fixNod;
+%             n_dof = obj.dimensions.n_dof;
+%             n_i = obj.dimensions.n_i;
+%             [n,m]=size(fixNod);
+%             ur=zeros(n,1);
+%             vr=zeros(n,1);
+%             vl=zeros(n_dof-n,1);
+%             for i=1:n
+%                 I=nod2dof(fixNod(i,1),fixNod(i,2),n_i);
+%                 ur(i)=fixNod(i,3);
+%                 vr(i)=I;
+%             end
+% 
+%             p=1;
+%             for j=1:n_dof
+%                 s=0;
+%                 for k=1:n
+%                     if vr(k)==j
+%                         s=1;
+%                     end
+%                 end
+%                 if s==0
+%                     vl(p)=j;
+%                     p=p+1;
+%                 end
+%             end
+%         end
         
         function Fext = computeFext(obj,m_nod,dVdt)
             D = obj.data.D;
@@ -203,7 +231,7 @@ classdef StructuralAnalysisComputer < handle
             f=zeros(n_dof,1);
             [n,m]=size(Fext);
             for i=1:n
-                I=nod2dof(Fext(i,1),Fext(i,2),n_i);
+                I=obj.nod2dof(Fext(i,1),Fext(i,2),n_i);
                 f(I)=Fext(i,5);
             end
 
@@ -271,12 +299,9 @@ classdef StructuralAnalysisComputer < handle
         end
 
 
-        function computeData(obj)
-            s = obj.initData;
-            obj.data = dataComputer(s);
-        end
 
-        function computeDisplacements(obj,m_nod,KG,ur,vr,vl,Td,mat,Mtot)
+
+        function computeDisplacements(obj,m_nod,KG,mat,Mtot)
             V=0;
             dVdt = obj.data.g;
             dt = 0.01;
@@ -292,7 +317,7 @@ classdef StructuralAnalysisComputer < handle
                 obj.data.computeDrag(V);
                 Fext = obj.computeFext(m_nod,dVdt);
                 f = obj.computeF(Fext);
-                [u,R,eps,sig] = obj.systemResolution(KG,f,ur,vr,vl,Td,mat);
+                [u,R,eps,sig] = obj.systemResolution(KG,f,obj.ur,obj.vr,obj.vl,obj.Td,mat);
                 dVdt = obj.data.g+(obj.data.D/Mtot);
                 [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = obj.computeSafetyParameters(mat,sig);
 

@@ -3,7 +3,6 @@ classdef dataComputer < handle
 
     properties (Access = public)
         x
-
         Tn
         Tmat
         M
@@ -15,7 +14,7 @@ classdef dataComputer < handle
 
     properties (Access = private)
         Cd
-       rho_s
+        rho_s
         rho_a
         S
         t_s        
@@ -25,7 +24,7 @@ classdef dataComputer < handle
 
         function obj = dataComputer(cParams)
             obj.init(cParams);
-            obj.computeSurface();
+            obj.computeFabricMass();
             obj.computeInputData();
         end
 
@@ -35,6 +34,7 @@ classdef dataComputer < handle
         end
 
     end
+
     methods (Access = private)
 
         function init(obj,cParams)
@@ -47,9 +47,12 @@ classdef dataComputer < handle
             obj.Cd    = cParams.Cd;
         end
 
-        function computeSurface(obj)
-            s = obj.rho_s*obj.t_s*obj.S;
-            obj.M_s = s;
+        function computeFabricMass(obj)
+            density = obj.rho_s;
+            thickness = obj.t_s;
+            surface = obj.S;
+            Mass = density*thickness*surface;
+            obj.M_s = Mass;
         end
 
         function computeInputData(obj)
