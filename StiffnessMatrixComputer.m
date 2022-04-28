@@ -30,8 +30,8 @@ classdef StiffnessMatrixComputer < handle
         function init(obj,cParams)
             obj.dim = cParams.dim;
             obj.data = cParams.data;
-            obj.mat = cParams.mat;
-            obj.Td = cParams.Td;
+            obj.mat = cParams.material.materialMatrix;
+            obj.Td = cParams.dofComputer.Td;
         end
 
         function computeElementalSfittnesMatrix(obj)
@@ -49,10 +49,10 @@ classdef StiffnessMatrixComputer < handle
             obj.Kel = kel;
         end
 
-        function KT = createElementalStifnessMatrix(obj,iElem,l)
-            l = obj.length;
-                A = obj.mat(obj.data.Tmat(iElem),2);
-                E = obj.mat(obj.data.Tmat(iElem),1);
+        function KT = createElementalStifnessMatrix(obj,iElem)
+                l = obj.length;
+                A = obj.mat(iElem,2);
+                E = obj.mat(iElem,1);
                 KT=(A*E/l)*[1 -1;-1 1];
         end
 

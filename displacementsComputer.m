@@ -1,11 +1,22 @@
 classdef displacementsComputer < handle
     
     properties (Access = public)
-        
+        displacements
+        reactions
     end
     
     properties (Access = private)
-        
+        forceVector
+    end
+
+    properties (Access = private)
+        dofComputer
+        stifnessMatrix
+        data
+        dimensions
+        material
+        mNod
+        M_tot
     end
     
 
@@ -13,6 +24,7 @@ classdef displacementsComputer < handle
         
         function obj = displacementsComputer(cParams)
             obj.init(cParams)
+            obj.computeDisplacements()
             
         end
         
@@ -21,10 +33,17 @@ classdef displacementsComputer < handle
     methods (Access = private)
         
         function init(obj,cParams)
-            
+            obj.dofComputer = cParams.dofComputer;
+            obj.stifnessMatrix = cParams.KG;
+            obj.data = cParams.data;
+            obj.dimensions = cParams.dimensions;
+            obj.mNod = cParams.m_nod;
+            obj.M_tot = cParams.Mtot;
+            obj.material = cParams.material;
         end
         
-        function computeDisplacements(obj,m_nod,KG,ur,vr,vl,Td,mat,Mtot)
+        function computeDisplacements(obj)
+            Mtot = obj.M_tot;
             V=0;
             dVdt = obj.data.g;
             dt = 0.01;
@@ -38,19 +57,53 @@ classdef displacementsComputer < handle
 
                 V = V + dVdt*dt;
                 obj.data.computeDrag(V);
-                Fext = obj.computeFext(m_nod,dVdt);
-                f = obj.computeF(Fext);
-                [u,R,eps,sig] = obj.systemResolution(KG,f,ur,vr,vl,Td,mat);
+                obj.computeForces(dVdt);
+                [u,R,eps,sig] = obj.systemResolution();
                 dVdt = obj.data.g+(obj.data.D/Mtot);
-                [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = obj.computeSafetyParameters(mat,sig);
+                [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = obj.computeSafetyParameters(sig);
 
             end
             obj.displacements = u;
             obj.reactions = R;
         end
 
-                
-        
+        function computeForces(obj,dVdt)
+            m_nod = obj.mNod;
+            s.data = obj.data;
+            s.dimensions = obj.dimensions;
+            s.m_nod = m_nod;
+            s.dVdt = dVdt;
+            e = forcesComputer(s);
+            obj.forceVector = e.forceVector; 
+        end
+
+        function [u,R,eps,sig] = systemResolution(obj)
+            f = obj.forceVector;
+            KG = obj.stifnessMatrix;
+            s.data = obj.data;
+            s.dimensions = obj.dimensions;
+            s.KG = KG;
+            s.f = f;
+            s.dofComputer = obj.dofComputer;
+            s.material = obj.material;
+            e = sysResolution(s);
+            u = e.disp;
+            R = e.reac;
+            eps = e.eps;
+            sig = e.sig;
+        end
+
+        function [sig_max,sig_min,scoef_ct,scoef_bt] = computeSafetyParameters(obj,sigma)
+            s.data = obj.data;
+            s.dimensions = obj.dimensions;
+            s.sigma = sigma;
+            s.material = obj.material;
+            e = safetyParametersComputer(s);
+            sig_max = e.sig_max;
+            sig_min = e.sig_min;
+            scoef_ct = e.scoef_ct;
+            scoef_bt = e.scoef_bt;
+        end  
     end
     
 end

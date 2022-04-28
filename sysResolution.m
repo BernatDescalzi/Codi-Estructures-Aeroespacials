@@ -12,19 +12,16 @@ classdef sysResolution < handle
         data
         KG
         f
-        ur
-        vr
-        vl
-        Td
-        mat
+        materialMatrix
+        dofComputer
     end
     
     methods (Access = public)
         
         function obj = sysResolution(cParams)
             obj.init(cParams)
-            obj.solveSys(obj.KG, obj.f, obj.ur, obj.vr, obj.vl)
-            obj.computeStrainStressBar(obj.Td, obj.mat)
+            obj.solveSys(obj.KG, obj.f)
+            obj.computeStrainStressBar()
         end
         
     end
@@ -36,16 +33,15 @@ classdef sysResolution < handle
             obj.data = cParams.data;
             obj.KG = cParams.KG;
             obj.f = cParams.f;
-            obj.ur = cParams.ur;
-            obj.vr = cParams.vr;
-            obj.vl = cParams.vl;
-            obj.Td = cParams.Td;
-            obj.mat = cParams.mat;
+            obj.dofComputer = cParams.dofComputer;
+            obj.materialMatrix = cParams.material.materialMatrix;
 
         end
         
-        function solveSys(obj,KG,f, ur, vr, vl)
-
+        function solveSys(obj,KG,f)
+            ur = obj.dofComputer.ur;
+            vr = obj.dofComputer.vr;
+            vl = obj.dofComputer.vl;
             KLL=KG(vl,vl);
             KLR=KG(vl,vr);
             KRL=KG(vr,vl);
@@ -65,37 +61,38 @@ classdef sysResolution < handle
 
         end
         
-        function computeStrainStressBar(obj,Td,mat)
+        function computeStrainStressBar(obj)
+            mat = obj.materialMatrix;
+            Td = obj.dofComputer.Td;
             n_nod = obj.dim.n_nod;
             n_i = obj.dim.n_i;
             n_el = obj.dim.n_el;
             Tn = obj.data.Tn;
-            Tmat = obj.data.Tmat;
             x = obj.data.x;
             u = obj.disp;
             sigma = zeros(n_el,1);
             epsilon = zeros(n_el,1);
             ue=zeros(n_nod*n_i,1);
 
-            for e=1:n_el
-                x1=x(Tn(e,1),1);
-                y1=x(Tn(e,1),2);
-                z1=x(Tn(e,1),3);
-                x2=x(Tn(e,2),1);
-                y2=x(Tn(e,2),2);
-                z2=x(Tn(e,2),3);
+            for iElem=1:n_el
+                x1=x(Tn(iElem,1),1);
+                y1=x(Tn(iElem,1),2);
+                z1=x(Tn(iElem,1),3);
+                x2=x(Tn(iElem,2),1);
+                y2=x(Tn(iElem,2),2);
+                z2=x(Tn(iElem,2),3);
                 l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
                 Rot=1/l*[x2-x1 y2-y1 z2-z1 0 0 0;
                     0 0 0 x2-x1 y2-y1 z2-z1];
 
                 for i=1:(n_nod*n_i)
-                I=Td(e,i);
+                I=Td(iElem,i);
                 ue(i,1)=u(I);
                 end
                 ue_local=Rot*ue;
-                epsilon(e,1)=(1/l)*[-1 1]*ue_local;
-                E=mat(Tmat(e),1);
-                sigma(e,1)=E*epsilon(e,1);
+                epsilon(iElem,1)=(1/l)*[-1 1]*ue_local;
+                E=mat(iElem,1);
+                sigma(iElem,1)=E*epsilon(iElem,1);
             end
             obj.eps = epsilon;
             obj.sig = sigma;

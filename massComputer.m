@@ -11,7 +11,7 @@ classdef massComputer < handle
     properties (Access = private)
         dim
         data
-        mat
+        materialMatrix
     end
 
     
@@ -31,7 +31,7 @@ classdef massComputer < handle
         function init(obj,cParams)
             obj.dim = cParams.dimensions;
             obj.data = cParams.data;
-            obj.mat = cParams.mat;
+            obj.materialMatrix = cParams.material.materialMatrix;
         end
         
         function computeMass(obj)
@@ -40,15 +40,13 @@ classdef massComputer < handle
             M_s = obj.data.M_s;
             n = obj.dim.n;
             n_el = obj.dim.n_el;
-            material = obj.mat;
+            mat = obj.materialMatrix;
             mass =zeros(n,1);
             for iElem=1:n_el
 
                 l = obj.computeLength(iElem);
-
-                type = obj.computeElementType(iElem);
-                A   = material(type,2);
-                rho = material(type,3);
+                A   = mat(iElem,2);
+                rho = mat(iElem,3);
 
                 m_bar = A*l*rho;
 
@@ -74,10 +72,10 @@ classdef massComputer < handle
             obj.m_nod = mass;
         end
 
-        function eType = computeElementType(obj,iElem)
-            T = obj.data.Tmat;
-            eType = T(iElem,1);
-        end
+%         function eType = computeElementType(obj,iElem)
+%             T = obj.data.Tmat;
+%             eType = T(iElem,1);
+%         end
 
         function l = computeLength(obj,iElem) 
             nodeA = obj.data.Tn(iElem,1);
