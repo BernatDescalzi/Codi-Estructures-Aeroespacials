@@ -1,7 +1,7 @@
 classdef dimensionsCalculator < handle
     
     properties (Access = public)
-        n_d
+        numDim
         n_i
         n
         n_dof
@@ -12,7 +12,6 @@ classdef dimensionsCalculator < handle
     properties (Access = private)
         x
         Tn
-        Tmat
     end
     
     
@@ -28,14 +27,13 @@ classdef dimensionsCalculator < handle
     methods (Access = private)
         
         function init(obj,cParams)
-            obj.x = cParams.x;
-            obj.Tn = cParams.Tn;
-            obj.Tmat = cParams.Tmat;          
+            obj.x = cParams.data.x;
+            obj.Tn = cParams.data.Tn;         
         end
         
         function compute(obj)
-            obj.n_d = size(obj.x,2);              
-            obj.n_i = obj.n_d;                    
+            obj.numDim = size(obj.x,2);              
+            obj.n_i = obj.numDim;                    
             obj.n = size(obj.x,1);                
             obj.n_dof = obj.n_i*obj.n;                
             obj.n_el = size(obj.Tn,1);            

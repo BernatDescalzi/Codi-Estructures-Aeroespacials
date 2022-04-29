@@ -15,8 +15,7 @@ classdef displacementsComputer < handle
         data
         dimensions
         material
-        mNod
-        M_tot
+        mass
     end
     
 
@@ -37,13 +36,12 @@ classdef displacementsComputer < handle
             obj.stifnessMatrix = cParams.KG;
             obj.data = cParams.data;
             obj.dimensions = cParams.dimensions;
-            obj.mNod = cParams.m_nod;
-            obj.M_tot = cParams.Mtot;
+            obj.mass = cParams.mass;
             obj.material = cParams.material;
         end
         
         function computeDisplacements(obj)
-            Mtot = obj.M_tot;
+            Mtot = obj.mass.totalMass;
             V=0;
             dVdt = obj.data.g;
             dt = 0.01;
@@ -68,7 +66,7 @@ classdef displacementsComputer < handle
         end
 
         function computeForces(obj,dVdt)
-            m_nod = obj.mNod;
+            m_nod = obj.mass.m_nod;
             s.data = obj.data;
             s.dimensions = obj.dimensions;
             s.m_nod = m_nod;

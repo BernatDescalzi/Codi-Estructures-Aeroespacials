@@ -6,14 +6,12 @@ classdef StructuralAnalysisComputer < handle
     end
 
     properties (Access = private)
-        cable
-        bar
         dimensions
         data
         dofComputer
         material
-        KG
-
+        stifnessMatrix
+        mass
     end
 
     properties (Access = private)
@@ -30,10 +28,6 @@ classdef StructuralAnalysisComputer < handle
 
         function compute(obj)
             obj.computeValues();
-            %obj.computeInitalValues();
-            %obj.computeStiffnessMatrix();
-            % obj.computeForces();
-            %obj.computeDisp();
         end
     end
 
@@ -50,19 +44,9 @@ classdef StructuralAnalysisComputer < handle
             obj.computeDimensions();
             obj.createMaterial();
             obj.computeDOFS();
+            obj.computeMass();
             obj.computeStiffnessMatrix();
-            [m_nod,Mtot] = obj.computeMass();
-            obj.computeDisplacements(m_nod,Mtot);
-        end
-
-        function createMaterial(obj)
-            s.barSettings = obj.barSettings;
-            s.cableSettings = obj.cableSettings;
-            s.data = obj.data;
-            s.dimensions = obj.dimensions;
-            e = materialCreator(s);
-            obj.material = e;
-        
+            obj.computeDisplacements();
         end
 
         function computeData(obj)
@@ -71,11 +55,18 @@ classdef StructuralAnalysisComputer < handle
         end
 
         function  computeDimensions(obj)
-            s.x = obj.data.x;
-            s.Tn = obj.data.Tn;
-            s.Tmat = obj.data.Tmat;
+            s.data = obj.data;
             d = dimensionsCalculator(s);
             obj.dimensions = d;
+        end
+
+        function createMaterial(obj)
+            s.barSettings = obj.barSettings;
+            s.cableSettings = obj.cableSettings;
+            s.data = obj.data;
+            s.dimensions = obj.dimensions;
+            e = materialCreator(s);
+            obj.material = e;        
         end
 
         function computeDOFS(obj)
@@ -85,37 +76,34 @@ classdef StructuralAnalysisComputer < handle
             obj.dofComputer = e;
         end
 
+        function computeMass(obj)
+            s.dimensions = obj.dimensions;
+            s.data = obj.data;
+            s.material = obj.material;
+            e = massComputer(s);
+            obj.mass = e;
+        end
+
         function computeStiffnessMatrix(obj)
             s.dim = obj.dimensions;
             s.data = obj.data;
             s.material = obj.material;
             s.dofComputer = obj.dofComputer;
             e = StiffnessMatrixComputer(s);
-            obj.KG = e.KG;
+            obj.stifnessMatrix = e.KG;
         end
 
-        function [m_nod,Mtot] = computeMass(obj)
-            s.dimensions = obj.dimensions;
-            s.data = obj.data;
-            s.material = obj.material;
-            e = massComputer(s);
-            m_nod = e.m_nod;
-            Mtot = e.totalMass;
-        end
-
-       function computeDisplacements(obj,m_nod,Mtot)
-           s.KG = obj.KG;
+        function computeDisplacements(obj)
+           s.KG = obj.stifnessMatrix;
            s.dofComputer = obj.dofComputer;
            s.data = obj.data;
            s.dimensions = obj.dimensions;
-           s.m_nod = m_nod;
-           s.Mtot = Mtot;
+           s.mass = obj.mass;
            s.material = obj.material;
 
            e = displacementsComputer(s);
            obj.displacements = e.displacements;
            obj.reactions = e.reactions;
-
-        end
+         end
     end
 end

@@ -1,6 +1,5 @@
 classdef dataComputer < handle
-
-
+    
     properties (Access = public)
         x
         Tn
@@ -18,6 +17,10 @@ classdef dataComputer < handle
         rho_a
         S
         t_s        
+    end
+
+    properties (Access = private)
+    
     end
 
     methods (Access = public)
