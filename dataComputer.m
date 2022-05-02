@@ -9,6 +9,8 @@ classdef dataComputer < handle
         fixNod
         g
         D
+        dt
+        t_end
     end
 
     properties (Access = private)
@@ -48,6 +50,8 @@ classdef dataComputer < handle
             obj.rho_s = cParams.rho_s;
             obj.rho_a = cParams.rho_a;
             obj.Cd    = cParams.Cd;
+            obj.dt = cParams.dt;
+            obj.t_end = cParams.t_end;
         end
 
         function computeFabricMass(obj)

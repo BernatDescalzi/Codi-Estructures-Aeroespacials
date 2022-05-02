@@ -8,6 +8,12 @@ classdef sysResolution < handle
     end
     
     properties (Access = private)
+        coordA
+        coordB
+        length
+    end
+
+    properties (Access = private)
         dim
         data
         KG
@@ -67,29 +73,22 @@ classdef sysResolution < handle
             n_nod = obj.dim.n_nod;
             n_i = obj.dim.n_i;
             n_el = obj.dim.n_el;
-            Tn = obj.data.Tn;
-            x = obj.data.x;
             u = obj.disp;
             sigma = zeros(n_el,1);
             epsilon = zeros(n_el,1);
             ue=zeros(n_nod*n_i,1);
 
             for iElem=1:n_el
-                x1=x(Tn(iElem,1),1);
-                y1=x(Tn(iElem,1),2);
-                z1=x(Tn(iElem,1),3);
-                x2=x(Tn(iElem,2),1);
-                y2=x(Tn(iElem,2),2);
-                z2=x(Tn(iElem,2),3);
-                l=sqrt((x2-x1)^2+(y2-y1)^2+(z2-z1)^2);
-                Rot=1/l*[x2-x1 y2-y1 z2-z1 0 0 0;
-                    0 0 0 x2-x1 y2-y1 z2-z1];
-
-                for i=1:(n_nod*n_i)
-                I=Td(iElem,i);
-                ue(i,1)=u(I);
+                obj.computeNodesCoord(iElem);
+                obj.computeLength();
+                Rot=obj.computeRotationMatrix();
+                ndofElem = n_nod*n_i;
+                for iDof=1:(ndofElem)
+                    I=Td(iElem,iDof);
+                    ue(iDof,1)=u(I);
                 end
                 ue_local=Rot*ue;
+                l=obj.length;
                 epsilon(iElem,1)=(1/l)*[-1 1]*ue_local;
                 E=mat(iElem,1);
                 sigma(iElem,1)=E*epsilon(iElem,1);
@@ -97,6 +96,43 @@ classdef sysResolution < handle
             obj.eps = epsilon;
             obj.sig = sigma;
         end
+
+        function computeNodesCoord(obj,iElem)
+            Tn = obj.data.Tn;
+            coord = obj.data.x;
+            nodeA = Tn(iElem,1);
+            nodeB = Tn(iElem,2);
+            obj.coordA.x = coord(nodeA,1);
+            obj.coordA.y = coord(nodeA,2);
+            obj.coordA.z = coord(nodeA,3);
+            obj.coordB.x = coord(nodeB,1);
+            obj.coordB.y = coord(nodeB,2);
+            obj.coordB.z = coord(nodeB,3);
+        end
+        
+        function l = computeLength(obj)
+            xA = obj.coordA.x;
+            xB = obj.coordB.x;
+            yA = obj.coordA.y;
+            yB = obj.coordB.y;
+            zA = obj.coordA.z;
+            zB = obj.coordB.z;            
+            l = sqrt((xB-xA)^2+(yB-yA)^2+(zB-zA)^2);
+            obj.length = l;
+        end
+
+        function R = computeRotationMatrix(obj)
+            xA = obj.coordA.x;
+            xB = obj.coordB.x;
+            yA = obj.coordA.y;
+            yB = obj.coordB.y;
+            zA = obj.coordA.z;
+            zB = obj.coordB.z;
+            l  = obj.length;
+            R=1/l*[xB-xA yB-yA zB-zA 0 0 0;
+                0 0 0 xB-xA yB-yA zB-zA];
+        end
+
     end
     
 end

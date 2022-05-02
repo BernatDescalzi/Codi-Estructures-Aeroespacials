@@ -39,8 +39,7 @@ classdef forcesComputer < handle
             dVdt = obj.dvdt;
             D = obj.data.D;
             g = obj.data.g;
-            Fext = [%   Node        DOF  Magnitude
-                % Write the data here...
+            Fext = [
                 6 3 D/16+m_nod(6)*(g-dVdt)
                 8 3 D/16+m_nod(8)*(g-dVdt)
                 14 3 D/16+m_nod(14)*(g-dVdt)
@@ -61,18 +60,23 @@ classdef forcesComputer < handle
         
         function computeForceVector(obj)
             Fext = obj.Fexterior;
-            n_i = obj.dimensions.n_i;
-            n_dof = obj.dimensions.n_dof;
-            f=zeros(n_dof,1);
+            totalDof = obj.dimensions.n_dof;
+
+            f=zeros(totalDof,1);
             n=size(Fext,1);
-            for i=1:n
-                I=obj.nod2dof(Fext(i,1),Fext(i,2),n_i);
-                f(I)=Fext(i,5);
+
+            for iNode=1:n
+                nodeApplied = Fext(iNode,1);
+                localDofApplied = Fext(iNode,2);
+                forceMagnitude = Fext(iNode,5);
+                globalDof=obj.nod2dof(nodeApplied,localDofApplied);
+                f(globalDof)=forceMagnitude;
             end
             obj.forceVector = f;
         end
         
-        function I = nod2dof(obj,i,j,n_i)
+        function I = nod2dof(obj,i,j)
+            n_i = obj.dimensions.n_i;
             I = n_i*(i-1)+j;
         end
     

@@ -44,21 +44,23 @@ classdef displacementsComputer < handle
             Mtot = obj.mass.totalMass;
             V=0;
             dVdt = obj.data.g;
-            dt = 0.01;
-            t_end = 5 ;
+            dt = obj.data.dt;
+            t_end = obj.data.t_end;
+
             time = 0:dt:t_end;
             sig_max = zeros(1,length(time));
             sig_min = zeros(1,length(time));
             scoef_c = zeros(1,length(time));
             scoef_b = zeros(1,length(time));
+
             for t = 1:length(time)
 
                 V = V + dVdt*dt;
                 obj.data.computeDrag(V);
                 obj.computeForces(dVdt);
                 [u,R,eps,sig] = obj.systemResolution();
-                dVdt = obj.data.g+(obj.data.D/Mtot);
                 [sig_max(t),sig_min(t),scoef_c(t),scoef_b(t)] = obj.computeSafetyParameters(sig);
+                dVdt = obj.data.g+(obj.data.D/Mtot);
 
             end
             obj.displacements = u;
@@ -66,22 +68,19 @@ classdef displacementsComputer < handle
         end
 
         function computeForces(obj,dVdt)
-            m_nod = obj.mass.m_nod;
             s.data = obj.data;
             s.dimensions = obj.dimensions;
-            s.m_nod = m_nod;
+            s.m_nod = obj.mass.m_nod;
             s.dVdt = dVdt;
             e = forcesComputer(s);
             obj.forceVector = e.forceVector; 
         end
 
         function [u,R,eps,sig] = systemResolution(obj)
-            f = obj.forceVector;
-            KG = obj.stifnessMatrix;
             s.data = obj.data;
             s.dimensions = obj.dimensions;
-            s.KG = KG;
-            s.f = f;
+            s.KG = obj.stifnessMatrix;
+            s.f = obj.forceVector;
             s.dofComputer = obj.dofComputer;
             s.material = obj.material;
             e = sysResolution(s);
@@ -102,6 +101,7 @@ classdef displacementsComputer < handle
             scoef_ct = e.scoef_ct;
             scoef_bt = e.scoef_bt;
         end  
+
     end
     
 end

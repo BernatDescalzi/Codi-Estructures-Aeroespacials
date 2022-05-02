@@ -21,7 +21,10 @@ sD.t_s = 2e-3;      % m
 sD.rho_s = 1650;    % kg/m3
 sD.rho_a = 1.225;   % kg/m3
 sD.Cd = 1.75;
+sD.dt = 0.01;
+sD.t_end = 5;
 s.data = sD;
+
 
 
 e = StructuralAnalysisComputer(s);
