@@ -4,7 +4,6 @@ classdef materialCreator < handle
         cable
         bar
         materialMatrix
-        mat
     end
     
     properties (Access = private)
@@ -58,18 +57,19 @@ classdef materialCreator < handle
             b = obj.bar;
             m = [c.E,           c.A,      c.rho,        c.I,        c.Sig_y;
                 b.E,           b.A,      b.rho,        b.I,        b.Sig_y];
+            
             Tmat = obj.data.Tmat;
             n_el = obj.dimensions.n_el;
             material=zeros(n_el,5);
-            for i=1:n_el
-                if Tmat(i) == 1
-                    material(i,:)=m(1,:);
-                elseif Tmat(i) == 2
-                    material(i,:)=m(2,:);
+            for iElem=1:n_el
+                if Tmat(iElem) == 1
+                    material(iElem,:)=m(1,:);
+                elseif Tmat(iElem) == 2
+                    material(iElem,:)=m(2,:);
                 end
             end
             obj.materialMatrix = material;
-            obj.mat = m;
+
         end
         
     end

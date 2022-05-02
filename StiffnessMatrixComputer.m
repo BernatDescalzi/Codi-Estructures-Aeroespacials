@@ -61,16 +61,27 @@ classdef StiffnessMatrixComputer < handle
         end
 
         function computeNodesCoord(obj,iElem)
-            Tn_mat = obj.data.Tn;
+            Tn = obj.data.Tn;
             coord = obj.data.x;
-            nodeA = Tn_mat(iElem,1);
-            nodeB = Tn_mat(iElem,2);
+            nodeA = Tn(iElem,1);
+            nodeB = Tn(iElem,2);
             obj.coordA.x = coord(nodeA,1);
             obj.coordA.y = coord(nodeA,2);
             obj.coordA.z = coord(nodeA,3);
             obj.coordB.x = coord(nodeB,1);
             obj.coordB.y = coord(nodeB,2);
             obj.coordB.z = coord(nodeB,3);
+        end
+        
+        function l = computeLength(obj)
+            xA = obj.coordA.x;
+            xB = obj.coordB.x;
+            yA = obj.coordA.y;
+            yB = obj.coordB.y;
+            zA = obj.coordA.z;
+            zB = obj.coordB.z;            
+            l = sqrt((xB-xA)^2+(yB-yA)^2+(zB-zA)^2);
+            obj.length = l;
         end
 
         function R = computeRotationMatrix(obj)
@@ -83,17 +94,6 @@ classdef StiffnessMatrixComputer < handle
             l  = obj.length;
             R=1/l*[xB-xA yB-yA zB-zA 0 0 0;
                 0 0 0 xB-xA yB-yA zB-zA];
-        end
-
-        function l = computeLength(obj)
-            xA = obj.coordA.x;
-            xB = obj.coordB.x;
-            yA = obj.coordA.y;
-            yB = obj.coordB.y;
-            zA = obj.coordA.z;
-            zB = obj.coordB.z;            
-            l = sqrt((xB-xA)^2+(yB-yA)^2+(zB-zA)^2);
-            obj.length = l;
         end
 
         function assemblyKG(obj)

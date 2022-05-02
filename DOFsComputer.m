@@ -38,12 +38,14 @@ classdef DOFsComputer < handle
             nNod = obj.dim.n_nod;
             nDof = obj.dim.n_i;
             elemDofs = nNod*nDof;
+            
             T_d = zeros(nElem,elemDofs);
             for iElem = 1:nElem
                 for iNod=1:nNod
                     for iDof=1:nDof
-                        I=obj.nod2dof(iNod,iDof);
-                        T_d(iElem,I)=obj.nod2dof(obj.data.Tn(iElem,iNod),iDof);
+                        localNumDof=obj.nod2dof(iNod,iDof);
+                        globalNumDof = obj.nod2dof(obj.data.Tn(iElem,iNod),iDof);
+                        T_d(iElem,localNumDof) = globalNumDof;
                     end
                 end
             end  
@@ -52,39 +54,50 @@ classdef DOFsComputer < handle
         
 
         function computeFixedDOFS(obj)
-            numDofs = obj.dim.n_dof;
+            [u_r,v_r] = obj.calculateRestrictedVectors();
+            v_l = obj.calculateFreeDofsVector(v_r);
+            obj.vr = v_r;
+            obj.vl = v_l;
+            obj.ur = u_r;
+        end
+
+        function [u_r,v_r] = calculateRestrictedVectors(obj)
             fixedNod = obj.data.fixNod;
             nFixedNod=size(fixedNod,1);
 
             u_r=zeros(nFixedNod,1);
             v_r=zeros(nFixedNod,1);
-            v_l=zeros(numDofs-nFixedNod,1);
 
             for i=1:nFixedNod
                 numFixedNod = fixedNod(i,1);
                 dofRestricted = fixedNod(i,2);
+                dispRestricted = fixedNod(i,3);
 
-                I=obj.nod2dof(numFixedNod,dofRestricted);
-                u_r(i)=fixedNod(i,3);
-                v_r(i)=I;
+                globalDofRestricted=obj.nod2dof(numFixedNod,dofRestricted);
+                u_r(i)=dispRestricted;
+                v_r(i)=globalDofRestricted;
             end
+        end
 
+        function v_l = calculateFreeDofsVector(obj,v_r)
+            totalDofs = obj.dim.n_dof;
+            fixedNod = obj.data.fixNod;
+            nFixedNod=size(fixedNod,1);
+            
+            v_l=zeros(totalDofs-nFixedNod,1);
             p=1;
-            for j=1:numDofs
+            for jDof=1:totalDofs
                 s=0;
-                for k=1:nFixedNod
-                    if v_r(k)==j
+                for kFixNod=1:nFixedNod
+                    if v_r(kFixNod)==jDof
                         s=1;
                     end
                 end
                 if s==0
-                    v_l(p)=j;
+                    v_l(p)=jDof;
                     p=p+1;
                 end
             end    
-            obj.vr = v_r;
-            obj.vl = v_l;
-            obj.ur = u_r;
         end
 
         function I = nod2dof(obj,i,j)

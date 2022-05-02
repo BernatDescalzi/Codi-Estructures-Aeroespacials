@@ -35,24 +35,19 @@ classdef massComputer < handle
         end
         
         function computeMass(obj)
-            Tn = obj.data.Tn;
+            mass = obj.computeElementMass();
+            mass = obj.computeExternalMass(mass);
+            obj.m_nod = mass;
+        end
+
+%         function eType = computeElementType(obj,iElem)
+%             T = obj.data.Tmat;
+%             eType = T(iElem,1);
+%         end
+        
+        function mass = computeExternalMass(obj,mass)
             M = obj.data.M;
             M_s = obj.data.M_s;
-            n = obj.dim.n;
-            n_el = obj.dim.n_el;
-            mat = obj.materialMatrix;
-            mass =zeros(n,1);
-            for iElem=1:n_el
-
-                l = obj.computeLength(iElem);
-                A   = mat(iElem,2);
-                rho = mat(iElem,3);
-
-                m_bar = A*l*rho;
-
-                mass(Tn(iElem,1))=mass(Tn(iElem,1))+m_bar/2;
-                mass(Tn(iElem,2))=mass(Tn(iElem,2))+m_bar/2;
-            end
             mass(1)=mass(1)+M;
             mass(6)=mass(6)+M_s/16;
             mass(8)=mass(8)+M_s/16;
@@ -63,19 +58,29 @@ classdef massComputer < handle
             mass(11)=mass(11)+2*M_s/16;
             mass(13)=mass(13)+2*M_s/16;
             mass(10)=mass(10)+4*M_s/16;
-
-
-            if nargin == 0
-                load('tmp.mat');
-            end
-            
-            obj.m_nod = mass;
         end
+        
+        function mass = computeElementMass(obj)
+            Tn = obj.data.Tn;
+            n_el = obj.dim.n_el;
+            mat = obj.materialMatrix;
+            totalNodes = obj.dim.n;
+            mass =zeros(totalNodes,1);
 
-%         function eType = computeElementType(obj,iElem)
-%             T = obj.data.Tmat;
-%             eType = T(iElem,1);
-%         end
+            for iElem=1:n_el
+
+                l = obj.computeLength(iElem);
+                A   = mat(iElem,2);
+                rho = mat(iElem,3);
+
+                m_bar = A*l*rho;
+                node1 = Tn(iElem,1);
+                node2 = Tn(iElem,2);
+
+                mass(node1)=mass(node1)+m_bar/2;
+                mass(node2)=mass(node2)+m_bar/2;
+            end
+        end
 
         function l = computeLength(obj,iElem) 
             nodeA = obj.data.Tn(iElem,1);
