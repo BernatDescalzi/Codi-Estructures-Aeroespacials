@@ -27,7 +27,13 @@ classdef StructuralAnalysisComputer < handle
         end
 
         function compute(obj)
-            obj.computeValues();
+            obj.computeData();
+            obj.computeDimensions();
+            obj.createMaterial();
+            obj.computeDOFS();
+            obj.computeMass();
+            obj.computeStiffnessMatrix();
+            obj.computeDisplacements();
         end
     end
 
@@ -37,16 +43,6 @@ classdef StructuralAnalysisComputer < handle
             obj.cableSettings = cParams.cableSettings;
             obj.barSettings = cParams.barSettings;
             obj.initData = cParams.data;
-        end
-
-        function computeValues(obj)
-            obj.computeData();
-            obj.computeDimensions();
-            obj.createMaterial();
-            obj.computeDOFS();
-            obj.computeMass();
-            obj.computeStiffnessMatrix();
-            obj.computeDisplacements();
         end
 
         function computeData(obj)

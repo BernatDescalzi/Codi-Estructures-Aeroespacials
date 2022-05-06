@@ -24,7 +24,6 @@ classdef materialCreator < handle
             obj.createCable()
             obj.createBar()
             obj.createMaterial()
-            
         end
         
     end
@@ -52,24 +51,30 @@ classdef materialCreator < handle
             obj.bar = e;
         end
         
-        function createMaterial(obj)
-            c = obj.cable;
-            b = obj.bar;
-            m = [c.E,           c.A,      c.rho,        c.I,        c.Sig_y;
-                b.E,           b.A,      b.rho,        b.I,        b.Sig_y];
-            
-            Tmat = obj.data.Tmat;
-            n_el = obj.dimensions.n_el;
-            material=zeros(n_el,5);
-            for iElem=1:n_el
-                if Tmat(iElem) == 1
-                    material(iElem,:)=m(1,:);
-                elseif Tmat(iElem) == 2
-                    material(iElem,:)=m(2,:);
-                end
-            end
+        function createMaterial(obj)            
+            nElem = obj.dimensions.n_el;
+            material=zeros(nElem,5);
+            for iElem=1:nElem
+                 m = obj.obtainMaterial(iElem);
+                 material(iElem,:) = [m.E,m.A,m.rho,m.I,m.Sig_y];
+            end            
             obj.materialMatrix = material;
+        end
+        
+        function m = obtainMaterial(obj,iElem)
+            if obj.isBar(iElem)
+                m = obj.bar;
+            elseif obj.isCable(iElem)
+                m = obj.cable;
+            end
+        end
 
+        function itIs = isCable(obj,iElem)
+            itIs = obj.data.Tmat(iElem) == 2;
+        end
+
+        function itIs = isBar(obj,iElem)
+            itIs = obj.data.Tmat(iElem) == 1;
         end
         
     end
