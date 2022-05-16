@@ -39,11 +39,6 @@ classdef massComputer < handle
             mass = obj.computeExternalMass(mass);
             obj.m_nod = mass;
         end
-
-%         function eType = computeElementType(obj,iElem)
-%             T = obj.data.Tmat;
-%             eType = T(iElem,1);
-%         end
         
         function mass = computeExternalMass(obj,mass)
             M = obj.data.M;

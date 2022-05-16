@@ -3,7 +3,7 @@ classdef Cable < element
     properties
     end
 
-    methods
+    methods (Access = public)
         function obj = Cable(cParams)
             init(obj,cParams);
             obj.A = pi*(obj.D/2)^2;

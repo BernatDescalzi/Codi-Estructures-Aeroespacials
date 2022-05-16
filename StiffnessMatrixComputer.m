@@ -99,12 +99,12 @@ classdef StiffnessMatrixComputer < handle
         function assemblyKG(obj)
                ndof  = obj.dim.n_nod*obj.dim.n_i;            
                kg = zeros(obj.dim.n_dof,obj.dim.n_dof);
-               connec = obj.Td;
+               connect = obj.Td;
                 for iElem = 1:obj.dim.n_el
                     for idof=1:ndof
-                        inode = connec(iElem,idof);
+                        inode = connect(iElem,idof);
                         for jdof=1:ndof
-                            jnode = connec(iElem,jdof);
+                            jnode = connect(iElem,jdof);
                             kelem = obj.Kel(idof,jdof,iElem);
                             kg(inode,jnode)=kg(inode,jnode)+kelem;
                         end
