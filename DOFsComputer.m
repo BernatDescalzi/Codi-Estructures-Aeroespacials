@@ -8,7 +8,6 @@ classdef DOFsComputer < handle
     end
     
     properties (Access = private)
-
     end
     
     properties (Access = private)

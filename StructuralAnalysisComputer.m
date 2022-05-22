@@ -47,7 +47,8 @@ classdef StructuralAnalysisComputer < handle
 
         function computeData(obj)
             s = obj.initData;
-            obj.data = dataComputer(s);
+            d = DataComputer(s);
+            obj.data = d.data;
         end
 
         function  computeDimensions(obj)
@@ -97,7 +98,7 @@ classdef StructuralAnalysisComputer < handle
            s.mass = obj.mass;
            s.material = obj.material;
 
-           e = displacementsComputer(s);
+           e = DisplacementsComputer(s);
            obj.displacements = e.displacements;
            obj.reactions = e.reactions;
          end

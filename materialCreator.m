@@ -1,13 +1,12 @@
 classdef materialCreator < handle
     
     properties (Access = public)
-        cable
-        bar
         materialMatrix
     end
     
     properties (Access = private)
-        
+        cable
+        bar
     end
     
     properties (Access = private)

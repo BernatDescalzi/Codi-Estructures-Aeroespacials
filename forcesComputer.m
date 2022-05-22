@@ -6,6 +6,7 @@ classdef forcesComputer < handle
     
     properties (Access = private)
         Fexterior
+        drag
     end
     
     properties (Access = private)
@@ -32,12 +33,13 @@ classdef forcesComputer < handle
             obj.dvdt = cParams.dVdt;
             obj.data = cParams.data;
             obj.dimensions = cParams.dimensions;
+            obj.drag = cParams.D;
         end
         
         function computeFext(obj)
             m_nod = obj.mNod;
             dVdt = obj.dvdt;
-            D = obj.data.D;
+            D = obj.drag;
             g = obj.data.g;
             Fext = [
                 6 3 D/16+m_nod(6)*(g-dVdt)

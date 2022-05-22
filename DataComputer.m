@@ -1,24 +1,28 @@
-classdef dataComputer < handle
+classdef DataComputer < handle
     
     properties (Access = public)
-        x
-        Tn
-        Tmat
-        M
-        M_s
-        fixNod
-        g
-        D
-        dt
-        t_end
+        data
     end
 
     properties (Access = private)
-        Cd
+        x
+        Tn
+        Tmat
+        M_s
+        fixNod
+        D
+    end
+
+    properties (Access = private)
+        g
+        M
+        S
+        t_s
         rho_s
         rho_a
-        S
-        t_s        
+        Cd
+        dt
+        t_end
     end
 
     properties (Access = private)
@@ -27,16 +31,17 @@ classdef dataComputer < handle
 
     methods (Access = public)
 
-        function obj = dataComputer(cParams)
+        function obj = DataComputer(cParams)
             obj.init(cParams);
             obj.computeFabricMass();
             obj.computeInputData();
+            obj.groupData();
         end
 
-        function computeDrag(obj,V)
-            d = 1/2*obj.rho_a*obj.S*V.^2*obj.Cd; 
-            obj.D = d;            
-        end
+%         function computeDrag(obj,V)
+%             d = 1/2*obj.rho_a*obj.S*V.^2*obj.Cd; 
+%             obj.D = d;            
+%         end
 
     end
 
@@ -68,6 +73,22 @@ classdef dataComputer < handle
             obj.Tn = c.Tn;
             obj.Tmat = c.Tmat;
             obj.fixNod = c.fixNod;
+        end
+
+        function groupData(obj)
+            obj.data.x = obj.x;
+            obj.data.Tn = obj.Tn;
+            obj.data.Tmat = obj.Tmat;
+            obj.data.M = obj.M;
+            obj.data.M_s = obj.M_s;
+            obj.data.fixNod = obj.fixNod;
+            obj.data.g = obj.g;
+            obj.data.D = obj.D;
+            obj.data.dt = obj.dt;
+            obj.data.t_end = obj.t_end;
+            obj.data.rho_a = obj.rho_a;
+            obj.data.S = obj.S;
+            obj.data.Cd = obj.Cd;
         end
 
     end
