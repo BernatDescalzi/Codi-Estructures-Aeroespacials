@@ -1,4 +1,4 @@
-classdef forcesComputer < handle
+classdef ForcesComputer < handle
     
     properties (Access = public)
         forceVector
@@ -18,7 +18,7 @@ classdef forcesComputer < handle
     
     methods (Access = public)
         
-        function obj = forcesComputer(cParams)
+        function obj = ForcesComputer(cParams)
             obj.init(cParams)
             obj.computeFext()
             obj.computeForceVector()
@@ -63,15 +63,12 @@ classdef forcesComputer < handle
         function computeForceVector(obj)
             Fext = obj.Fexterior;
             totalDof = obj.dimensions.n_dof;
-
             f=zeros(totalDof,1);
             n=size(Fext,1);
-
+            
             for iNode=1:n
-                nodeApplied = Fext(iNode,1);
-                localDofApplied = Fext(iNode,2);
+                globalDof = obj.obtainGlobalDof(iNode);
                 forceMagnitude = Fext(iNode,5);
-                globalDof=obj.nod2dof(nodeApplied,localDofApplied);
                 f(globalDof)=forceMagnitude;
             end
             obj.forceVector = f;
@@ -81,6 +78,12 @@ classdef forcesComputer < handle
             n_i = obj.dimensions.n_i;
             I = n_i*(i-1)+j;
         end
-    
+
+        function GDof = obtainGlobalDof(obj,iNode)
+            Fext = obj.Fexterior;
+            nodeApplied = Fext(iNode,1);
+            localDofApplied = Fext(iNode,2);
+            GDof=obj.nod2dof(nodeApplied,localDofApplied);
+        end   
     end
 end

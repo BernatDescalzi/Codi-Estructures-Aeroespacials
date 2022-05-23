@@ -1,4 +1,4 @@
-classdef massComputer < handle
+classdef MassComputer < handle
     
     properties (Access = public)
         m_nod
@@ -17,7 +17,7 @@ classdef massComputer < handle
     
     methods (Access = public)
         
-        function obj = massComputer(cParams)
+        function obj = MassComputer(cParams)
             obj.init(cParams)
             obj.computeMass()
             obj.computeTotalMass()

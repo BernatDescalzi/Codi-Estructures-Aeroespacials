@@ -10,7 +10,7 @@ classdef DisplacementsComputer < handle
         V
         dVdt
         time
-        D
+        drag
         epsilon
         sigma
         sig_max
@@ -49,10 +49,10 @@ classdef DisplacementsComputer < handle
         end
         
         function computeDisplacements(obj)
+            obj.initialize();
             t = obj.time;
-            obj.initialize(t);
 
-            for t = 1:length(t)
+            for n = 1:length(t)
                 obj.computeVelocity()
                 obj.computeDrag();
                 obj.computeForces();
@@ -63,18 +63,14 @@ classdef DisplacementsComputer < handle
         end
 
         function computeForces(obj)
-            s.data = obj.data;
-            s.dimensions = obj.dimensions;
-            s.m_nod = obj.mass.m_nod;
-            s.dVdt = obj.dVdt;
-            s.D = obj.D;
-            e = forcesComputer(s);
+            s = obj.createForcesComputer();
+            e = ForcesComputer(s);
             obj.forceVector = e.forceVector; 
         end
 
         function systemResolution(obj)
-            s = createSystemResolution();
-            e = sysResolution(s);
+            s = obj.createSystemResolution();
+            e = SysResolution(s);
             obj.displacements = e.disp;
             obj.reactions = e.reac;
             obj.epsilon = e.eps;
@@ -82,11 +78,8 @@ classdef DisplacementsComputer < handle
         end
 
         function computeSafetyParameters(obj)
-            s.data = obj.data;
-            s.dimensions = obj.dimensions;
-            s.sigma = obj.sigma;
-            s.material = obj.material;
-            e = safetyParametersComputer(s);
+            s = obj.createSafetyParametersComputer();
+            e = SafetyParametersComputer(s);
             obj.sig_max = e.sig_max;
             obj.sig_min = e.sig_min;
             obj.scoef_c = e.scoef_ct;
@@ -95,34 +88,34 @@ classdef DisplacementsComputer < handle
 
         function computeVelocity(obj)
             dt = obj.data.dt;
-            V = obj.V + obj.dVdt*dt;
-            obj.V = V;
+            v = obj.V + obj.dVdt*dt;
+            obj.V = v;
         end
 
         function updateVelocity(obj)
             Mtot = obj.mass.totalMass;
-            obj.dVdt = obj.data.g+(obj.D/Mtot);
+            obj.dVdt = obj.data.g+(obj.drag/Mtot);
         end
 
-        function initialize(obj,t)
+        function initialize(obj)
             obj.V=0;
             obj.dVdt = obj.data.g;
             dt = obj.data.dt;
             t_end = obj.data.t_end;
             obj.time = 0:dt:t_end;
 
-            obj.sig_max = zeros(1,length(t));
-            obj.sig_min = zeros(1,length(t));
-            obj.scoef_c = zeros(1,length(t));
-            obj.scoef_b = zeros(1,length(t));
+            obj.sig_max = zeros(1,length(obj.time));
+            obj.sig_min = zeros(1,length(obj.time));
+            obj.scoef_c = zeros(1,length(obj.time));
+            obj.scoef_b = zeros(1,length(obj.time));
         end
 
         function computeDrag(obj)
             rho_a = obj.data.rho_a;
             S = obj.data.S;
             Cd = obj.data.Cd;
-            d = 1/2*rho_a*S*obj.V.^2*Cd; 
-            obj.D = d;            
+            D = 1/2*rho_a*S*obj.V.^2*Cd; 
+            obj.drag = D;            
         end
 
         function s = createSystemResolution(obj)
@@ -134,6 +127,20 @@ classdef DisplacementsComputer < handle
             s.material = obj.material;
         end
 
+        function s = createForcesComputer(obj)
+            s.data = obj.data;
+            s.dimensions = obj.dimensions;
+            s.m_nod = obj.mass.m_nod;
+            s.dVdt = obj.dVdt;
+            s.D = obj.drag;
+        end
+        
+        function s = createSafetyParametersComputer(obj)
+            s.data = obj.data;
+            s.dimensions = obj.dimensions;
+            s.sigma = obj.sigma;
+            s.material = obj.material;
+        end
     end
     
 end

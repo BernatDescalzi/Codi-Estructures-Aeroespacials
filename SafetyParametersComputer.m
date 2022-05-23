@@ -1,4 +1,4 @@
-classdef safetyParametersComputer < handle
+classdef SafetyParametersComputer < handle
     
     properties (Access = public)
         sig_max
@@ -22,10 +22,9 @@ classdef safetyParametersComputer < handle
     
     methods (Access = public)
         
-        function obj = safetyParametersComputer(cParams)
+        function obj = SafetyParametersComputer(cParams)
             obj.init(cParams)
             obj.compute()
-            
         end
         
     end
@@ -40,29 +39,17 @@ classdef safetyParametersComputer < handle
         end
         
         function compute(obj)
-            x = obj.data.x;
-            Tn = obj.data.Tn;
             n_el = obj.dim.n_el;
-            sig = obj.sigma;
-            mat = obj.materialMatrix;
-            obj.sig_max=max(sig);
-            obj.sig_min=min(sig);
-            sig_cr=zeros(n_el,1);
+
+            obj.computeMaxAndMinStress()
+
             for iElem=1:n_el
-                obj.computeNodesCoord(iElem)
-                l = obj.computeLength();
-                sig_cr(iElem,1) = pi^2*mat(iElem,1)*mat(iElem,4)/(l^2*mat(iElem,2));
-                scoef_c(iElem) = mat(iElem,5)/abs(sig(iElem));
-
-                if sig(iElem)<0
-                    scoef_b(iElem)=sig_cr(iElem)/sig(iElem);
-                else
-                    scoef_b(iElem)=-1000;
-                end
-
+                sig_cr = obj.computeCriticStress(iElem);
+                obj.computeSafetyCoefCable(iElem)
+                obj.computeSafetyCoefBar(iElem,sig_cr)
             end
-            obj.scoef_ct=min(scoef_c);
-            obj.scoef_bt=-max(scoef_b);
+
+
         end
 
         function computeNodesCoord(obj,iElem)
@@ -87,6 +74,40 @@ classdef safetyParametersComputer < handle
             zB = obj.coordB.z;            
             l = sqrt((xB-xA)^2+(yB-yA)^2+(zB-zA)^2);
             obj.length = l;
+        end
+
+        function computeMaxAndMinStress(obj)
+            sig = obj.sigma;
+            obj.sig_max=max(sig);
+            obj.sig_min=min(sig);
+        end
+
+        function sig_cr = computeCriticStress(obj,iElem)
+            mat = obj.materialMatrix;
+            n_el = obj.dim.n_el;
+            obj.computeNodesCoord(iElem)
+            l = obj.computeLength();
+            sig_cr=zeros(n_el,1);
+
+            sig_cr(iElem,1) = pi^2*mat(iElem,1)*mat(iElem,4)/(l^2*mat(iElem,2));
+        end
+
+        function computeSafetyCoefBar(obj,iElem,sig_cr)
+            sig = obj.sigma;
+                if sig(iElem)<0
+                    scoef_b(iElem)=sig_cr(iElem)/sig(iElem);
+                else
+                    scoef_b(iElem)=-1000;
+                end
+            obj.scoef_bt=-max(scoef_b);
+        end
+
+        function computeSafetyCoefCable(obj,iElem)
+            sig = obj.sigma;
+            mat = obj.materialMatrix;
+
+            scoef_c(iElem) = mat(iElem,5)/abs(sig(iElem));
+            obj.scoef_ct=min(scoef_c);
         end
     end
     

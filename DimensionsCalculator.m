@@ -1,4 +1,4 @@
-classdef dimensionsCalculator < handle
+classdef DimensionsCalculator < handle
     
     properties (Access = public)
         numDim
@@ -17,7 +17,7 @@ classdef dimensionsCalculator < handle
     
     methods (Access = public)
         
-        function obj = dimensionsCalculator(cParams)
+        function obj = DimensionsCalculator(cParams)
             obj.init(cParams)
             obj.compute()
         end

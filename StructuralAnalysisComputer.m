@@ -53,7 +53,7 @@ classdef StructuralAnalysisComputer < handle
 
         function  computeDimensions(obj)
             s.data = obj.data;
-            d = dimensionsCalculator(s);
+            d = DimensionsCalculator(s);
             obj.dimensions = d;
         end
 
@@ -62,7 +62,7 @@ classdef StructuralAnalysisComputer < handle
             s.cableSettings = obj.cableSettings;
             s.data = obj.data;
             s.dimensions = obj.dimensions;
-            e = materialCreator(s);
+            e = MaterialCreator(s);
             obj.material = e;        
         end
 
@@ -77,7 +77,7 @@ classdef StructuralAnalysisComputer < handle
             s.dimensions = obj.dimensions;
             s.data = obj.data;
             s.material = obj.material;
-            e = massComputer(s);
+            e = MassComputer(s);
             obj.mass = e;
         end
 

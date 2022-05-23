@@ -1,4 +1,4 @@
-classdef materialCreator < handle
+classdef MaterialCreator < handle
     
     properties (Access = public)
         materialMatrix
@@ -18,7 +18,7 @@ classdef materialCreator < handle
     
     methods (Access = public)
         
-        function obj = materialCreator(cParams)
+        function obj = MaterialCreator(cParams)
             obj.init(cParams)
             obj.createCable()
             obj.createBar()

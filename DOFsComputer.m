@@ -42,9 +42,9 @@ classdef DOFsComputer < handle
             for iElem = 1:nElem
                 for iNod=1:nNod
                     for iDof=1:nDof
-                        localNumDof=obj.nod2dof(iNod,iDof);
-                        globalNumDof = obj.nod2dof(obj.data.Tn(iElem,iNod),iDof);
-                        T_d(iElem,localNumDof) = globalNumDof;
+                        localDof=obj.nod2dof(iNod,iDof);
+                        globalDof = obj.nod2dof(obj.data.Tn(iElem,iNod),iDof);
+                        T_d(iElem,localDof) = globalDof;
                     end
                 end
             end  
@@ -60,12 +60,12 @@ classdef DOFsComputer < handle
             obj.ur = u_r;
         end
 
-        function [u_r,v_r] = calculateRestrictedVectors(obj)
+        function [ur,vr] = calculateRestrictedVectors(obj)
             fixedNod = obj.data.fixNod;
             nFixedNod=size(fixedNod,1);
 
-            u_r=zeros(nFixedNod,1);
-            v_r=zeros(nFixedNod,1);
+            ur=zeros(nFixedNod,1);
+            vr=zeros(nFixedNod,1);
 
             for i=1:nFixedNod
                 numFixedNod = fixedNod(i,1);
@@ -73,8 +73,8 @@ classdef DOFsComputer < handle
                 dispRestricted = fixedNod(i,3);
 
                 globalDofRestricted=obj.nod2dof(numFixedNod,dofRestricted);
-                u_r(i)=dispRestricted;
-                v_r(i)=globalDofRestricted;
+                ur(i)=dispRestricted;
+                vr(i)=globalDofRestricted;
             end
         end
 
@@ -104,7 +104,6 @@ classdef DOFsComputer < handle
             I = ni*(i-1)+j;
         end               
         
-
         
     end
     

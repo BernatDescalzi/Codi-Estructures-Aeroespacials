@@ -38,11 +38,6 @@ classdef DataComputer < handle
             obj.groupData();
         end
 
-%         function computeDrag(obj,V)
-%             d = 1/2*obj.rho_a*obj.S*V.^2*obj.Cd; 
-%             obj.D = d;            
-%         end
-
     end
 
     methods (Access = private)
@@ -68,7 +63,7 @@ classdef DataComputer < handle
         end
 
         function computeInputData(obj)
-            c = inputData();
+            c = InputData();
             obj.x = c.x;
             obj.Tn = c.Tn;
             obj.Tmat = c.Tmat;

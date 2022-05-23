@@ -1,4 +1,4 @@
-classdef inputData < handle
+classdef InputData < handle
     
     properties (Access = public)
         x
@@ -13,7 +13,7 @@ classdef inputData < handle
     
     methods (Access = public)
         
-        function obj = inputData()
+        function obj = InputData()
             obj.nodalCoordinates();
             obj.barConnectivities();
             obj.materialConnectivities();
