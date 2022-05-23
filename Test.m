@@ -51,5 +51,10 @@ end
 
 
 %ToDo
-% delete Td, ur,vr,vl form Structural...use DOfcomputer
-% 
+% Dinamical loop in structural 
+% New UML
+% Create iterative solver with pcg
+% create two tests: one for direct solver, one for iterative
+% check coverage is 100%
+
+
