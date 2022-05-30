@@ -23,6 +23,7 @@ sD.rho_a = 1.225;   % kg/m3
 sD.Cd = 1.75;
 sD.dt = 0.01;
 sD.t_end = 5;
+sD.solverType = 'Direct'; %'Direct' or 'Iterative'
 s.data = sD;
 
 
@@ -53,8 +54,7 @@ end
 %ToDo
 % Dinamical loop in structural 
 % New UML
-% Create iterative solver with pcg
-% create two tests: one for direct solver, one for iterative
-% check coverage is 100%
+% Create iterative solver with pcg 
+
 
 
