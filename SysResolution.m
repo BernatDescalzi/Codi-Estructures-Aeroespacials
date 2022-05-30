@@ -48,14 +48,12 @@ classdef SysResolution < handle
             ul = obj.computeFreeDisplacements();
             R = obj.computeReactions(ul);
             u = obj.computeDisplacementsVector(ul);
-
             obj.disp = u;
             obj.reac = R;
         end
         
         function computeStrainStressBar(obj)
             n_el = obj.dim.n_el;
-            
             for iElem=1:n_el
                 obj.computeNodesCoord(iElem);
                 obj.computeLength();
@@ -66,16 +64,15 @@ classdef SysResolution < handle
         end
         
         function ul = computeFreeDisplacements(obj)
-            ur = obj.dofComputer.ur;
             vr = obj.dofComputer.vr;
             vl = obj.dofComputer.vl;
             f = obj.forceVector;
             KG = obj.stiffnessMatrix;
-
             KLL=KG(vl,vl);
             KLR=KG(vl,vr);
             FLext=f(vl,1);
-            ul=KLL\(FLext-KLR*ur);
+            ul = obj.computeSolver(KLL,KLR,FLext);
+
 
         end
 
@@ -169,6 +166,16 @@ classdef SysResolution < handle
             E=mat(iElem,1);
             sigma(iElem,1)=E*epsilon(iElem,1);
             obj.sig = sigma;
+        end
+
+        function ul = computeSolver(obj,KLL,KLR,FLext)
+            s.ur = obj.dofComputer.ur;
+            s.KLL = KLL;
+            s.KLR = KLR;
+            s.FLext = FLext;
+            s.solverType = obj.data.solverType;
+            e = Solver.create(s);
+            ul = e.solution;
         end
 
     end

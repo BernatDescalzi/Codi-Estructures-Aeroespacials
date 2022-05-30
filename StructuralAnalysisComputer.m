@@ -8,9 +8,7 @@ classdef StructuralAnalysisComputer < handle
     properties (Access = private)
         dimensions
         data
-        dofComputer
         material
-        stifnessMatrix
         mass
     end
 
@@ -30,10 +28,8 @@ classdef StructuralAnalysisComputer < handle
             obj.computeData();
             obj.computeDimensions();
             obj.createMaterial();
-            obj.computeDOFS();
             obj.computeMass();
-            obj.computeStiffnessMatrix();
-            obj.computeDisplacements();
+            obj.computeDynamicSolver();
         end
     end
 
@@ -66,13 +62,6 @@ classdef StructuralAnalysisComputer < handle
             obj.material = e;        
         end
 
-        function computeDOFS(obj)
-            s.dimensions = obj.dimensions;
-            s.data = obj.data;
-            e = DOFsComputer(s);
-            obj.dofComputer = e;
-        end
-
         function computeMass(obj)
             s.dimensions = obj.dimensions;
             s.data = obj.data;
@@ -81,26 +70,15 @@ classdef StructuralAnalysisComputer < handle
             obj.mass = e;
         end
 
-        function computeStiffnessMatrix(obj)
-            s.dim = obj.dimensions;
+        function computeDynamicSolver(obj)
+            s.dimensions = obj.dimensions;
             s.data = obj.data;
             s.material = obj.material;
-            s.dofComputer = obj.dofComputer;
-            e = StiffnessMatrixComputer(s);
-            obj.stifnessMatrix = e.KG;
+            s.mass = obj.mass;
+            e = DynamicSolver(s);
+            obj.displacements = e.displacements;
+            obj.reactions = e.reactions;
         end
 
-        function computeDisplacements(obj)
-           s.KG = obj.stifnessMatrix;
-           s.dofComputer = obj.dofComputer;
-           s.data = obj.data;
-           s.dimensions = obj.dimensions;
-           s.mass = obj.mass;
-           s.material = obj.material;
-
-           e = DisplacementsComputer(s);
-           obj.displacements = e.displacements;
-           obj.reactions = e.reactions;
-         end
     end
 end

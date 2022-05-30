@@ -23,6 +23,7 @@ classdef DataComputer < handle
         Cd
         dt
         t_end
+        solverType
     end
 
     properties (Access = private)
@@ -52,6 +53,7 @@ classdef DataComputer < handle
             obj.Cd    = cParams.Cd;
             obj.dt = cParams.dt;
             obj.t_end = cParams.t_end;
+            obj.solverType = cParams.solverType;
         end
 
         function computeFabricMass(obj)
@@ -84,6 +86,7 @@ classdef DataComputer < handle
             obj.data.rho_a = obj.rho_a;
             obj.data.S = obj.S;
             obj.data.Cd = obj.Cd;
+            obj.data.solverType = obj.solverType;
         end
 
     end
